@@ -70,7 +70,7 @@ Ue_Asset_manger/
 
 ### 方法一：直接下载可执行文件（推荐给普通用户）
 
-1. 访问项目的 GitHub [Releases](https://github.com/[your-username]/Ue_Asset_manger/releases) 页面
+1. 访问项目的 GitHub [Releases](https://github.com/Awfp1314/Ue_Asset_manger/releases) 页面
 2. 下载最新版本的 `UE资源管理器_Windows_x64.zip` 文件
 3. 解压下载的 ZIP 文件
 4. 运行 `UE资源管理器.exe` 即可开始使用
@@ -88,11 +88,11 @@ Ue_Asset_manger/
 
 ```bash
 # 中文 / Chinese
-git clone https://github.com/[your-username]/Ue_Asset_manger.git
+git clone https://github.com/Awfp1314/Ue_Asset_manger.git
 cd Ue_Asset_manger
 
 # 英文 / English
-git clone https://github.com/[your-username]/Ue_Asset_manger.git
+git clone https://github.com/Awfp1314/Ue_Asset_manger.git
 cd Ue_Asset_manger
 ```
 
