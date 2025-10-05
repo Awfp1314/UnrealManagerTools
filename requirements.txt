@@ -1,0 +1,5 @@
+py7zr
+customtkinter
+pillow
+pyinstaller
+psutil
