@@ -70,7 +70,7 @@ Ue_Asset_manger/
 
 ### 方法一：直接下载可执行文件（推荐给普通用户）
 
-1. 访问项目的 GitHub [Releases](https://github.com/Awfp1314/Ue_Asset_manger/releases) 页面
+1. 访问项目的 GitHub [Releases](https://github.com/Awfp1314/Ue_Asset_manger/releases) 页面（目前尚未发布正式版本）
 2. 下载最新版本的 `UE资源管理器_Windows_x64.zip` 文件
 3. 解压下载的 ZIP 文件
 4. 运行 `UE资源管理器.exe` 即可开始使用
@@ -103,7 +103,21 @@ cd Ue_Asset_manger
 python scripts/install_dependencies.py
 
 # 或直接通过pip安装 / Or install directly via pip
+# 使用默认源：
 pip install -r requirements.txt
+
+# 使用国内镜像源（推荐国内用户使用）：
+# 清华大学镜像源
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple/ -r requirements.txt
+
+# 阿里云镜像源
+pip install -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt
+
+# 豆瓣镜像源
+pip install -i https://pypi.douban.com/simple/ -r requirements.txt
+
+# 中科大镜像源
+pip install -i https://mirrors.ustc.edu.cn/pypi/web/simple/ -r requirements.txt
 ```
 
 3. **运行程序 / Run the application**

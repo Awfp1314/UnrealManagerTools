@@ -11,9 +11,12 @@ os.environ['PYTHONIOENCODING'] = 'utf-8'
 # 项目根目录
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-# 输出目录
-OUTPUT_DIR = os.path.join(PROJECT_ROOT, 'dist')
-BUILD_DIR = os.path.join(PROJECT_ROOT, 'build')
+# 在桌面创建统一的打包目录
+PACKAGING_DIR = os.path.join(os.path.expanduser('~'), 'Desktop', 'UE_Asset_Manager_Packaging')
+
+# 输出目录（修改到统一打包目录内，避免污染源代码和桌面）
+OUTPUT_DIR = os.path.join(PACKAGING_DIR, 'dist')
+BUILD_DIR = os.path.join(PACKAGING_DIR, 'build')
 
 # 检查是否安装了PyInstaller
 def check_pyinstaller():
@@ -35,15 +38,20 @@ def clear_old_files():
         shutil.rmtree(BUILD_DIR)
         print(f"已清理旧的构建目录: {BUILD_DIR}")
     
-    # 清理.spec文件
+    # 提示用户统一打包目录的位置
+    print(f"所有打包文件将位于: {PACKAGING_DIR}")
+    
+    # 清理.spec文件（保留在项目目录中，因为PyInstaller需要在项目根目录生成）
     spec_file = os.path.join(PROJECT_ROOT, 'ue_asset_manager.spec')
     if os.path.exists(spec_file):
         os.remove(spec_file)
         print(f"已清理旧的spec文件: {spec_file}")
 
 def create_icon_file():
-    """创建应用图标"""
-    icon_path = os.path.join(PROJECT_ROOT, 'app_icon.ico')
+    """创建应用图标（修改到统一打包目录内，避免污染源代码和桌面）"""
+    # 确保打包目录存在
+    os.makedirs(PACKAGING_DIR, exist_ok=True)
+    icon_path = os.path.join(PACKAGING_DIR, 'app_icon.ico')
     
     # 如果没有图标文件，创建一个简单的SVG图标并转换为ico
     if not os.path.exists(icon_path):
@@ -59,7 +67,7 @@ def create_icon_file():
 </svg>
         '''
         
-        svg_path = os.path.join(PROJECT_ROOT, 'app_icon.svg')
+        svg_path = os.path.join(PACKAGING_DIR, 'app_icon.svg')
         with open(svg_path, 'w', encoding='utf-8') as f:
             f.write(svg_content.strip())
         
@@ -104,6 +112,8 @@ def package_as_exe():
         '--onefile',  # 打包成单个文件
         '--windowed',  # 无控制台窗口
         '--name', 'UE资源管理器',
+        '--distpath', OUTPUT_DIR,  # 指定输出目录
+        '--workpath', BUILD_DIR,   # 指定构建目录
         '--add-data', f'{os.path.join(PROJECT_ROOT, "ue_assets.json")};.',
         '--add-data', f'{os.path.join(PROJECT_ROOT, "ue_projects.json")};.',
     ]
@@ -140,6 +150,7 @@ def package_as_exe():
             
             print(f"\n应用程序打包成功！")
             print(f"可执行文件位置: {os.path.join(OUTPUT_DIR, 'UE资源管理器.exe' if platform.system() == 'Windows' else 'UE资源管理器')}")
+            print(f"所有打包文件都位于: {PACKAGING_DIR}")
             print(f"\n使用说明:")
             print(f"1. 运行UE资源管理器.exe即可启动程序")
             print(f"2. 首次运行时会自动创建必要的数据文件")
@@ -159,9 +170,9 @@ def create_release_archive():
             print("输出目录不存在，先运行打包命令")
             package_as_exe()
             
-        # 创建归档文件
+        # 创建归档文件（修改到统一打包目录内，避免污染源代码和桌面）
         archive_name = f"UE资源管理器_{platform.system()}_{platform.architecture()[0]}"
-        archive_path = os.path.join(PROJECT_ROOT, archive_name)
+        archive_path = os.path.join(PACKAGING_DIR, archive_name)
         
         # 复制可执行文件
         exe_name = 'UE资源管理器.exe' if platform.system() == 'Windows' else 'UE资源管理器'
@@ -204,6 +215,7 @@ def create_release_archive():
             
             print(f"\n发布归档文件创建成功: {archive_path}.zip")
             print(f"这个ZIP文件包含了所有必要的文件，可以直接上传到GitHub的Release页面")
+            print(f"所有打包文件都位于: {PACKAGING_DIR}")
         else:
             print(f"可执行文件不存在: {exe_path}")
     except Exception as e:
@@ -269,6 +281,7 @@ def main():
     print("1. 将生成的ZIP文件上传到GitHub的Release页面")
     print("2. 在README.md中添加下载链接")
     print("3. 告诉用户如何下载和使用您的程序")
+    print(f"所有打包文件都位于: {PACKAGING_DIR}")
 
 if __name__ == '__main__':
     main()
