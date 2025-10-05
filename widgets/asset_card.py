@@ -1245,9 +1245,17 @@ class AssetCard(ctk.CTkFrame):
         name_entry.pack(fill="x", pady=(0, 15))
         
         # 资源路径
+        ctk.CTkLabel(form_frame, text="资源路径:", 
+                    font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
         path_var = ctk.StringVar(value=self.asset.get('path', ''))
-        DialogUtils.create_form_field(form_frame, "资源路径:", path_var, "entry")
-        DialogUtils.create_file_picker_frame(form_frame, path_var, "选择文件夹")
+        path_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        path_frame.pack(fill="x", pady=(0, 15))
+        path_entry = ctk.CTkEntry(path_frame, textvariable=path_var,
+                                 font=ctk.CTkFont(size=13))
+        path_entry.pack(side="left", fill="x", expand=True)
+        
+        ctk.CTkButton(path_frame, text="选择", width=80,
+                     command=lambda: self.browse_folder(path_var)).pack(side="right", padx=(5, 0))
         
         # 分类
         ctk.CTkLabel(form_frame, text="分类:", 
@@ -1419,9 +1427,9 @@ class AssetCard(ctk.CTkFrame):
                                        font=ctk.CTkFont(size=13))
         category_combo.pack(fill="x", pady=(0, 20))
         
-        # 按钮框架
+        # 按钮框架 - 修改为 pack 到底部确保可见
         btn_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        btn_frame.pack(fill="x", pady=10)
+        btn_frame.pack(fill="x", pady=10, side="bottom")
         
         def apply_change():
             new_category = category_var.get()
@@ -1440,9 +1448,15 @@ class AssetCard(ctk.CTkFrame):
                 if hasattr(self.controller, 'show_status'):
                     self.controller.show_status("更改分类失败", "error")
         
-        DialogUtils.create_button_frame(form_frame, [
-            ("应用", apply_change, "left"),
-            ("取消", dialog.destroy, "right", {"fg_color": "transparent", "border_width": 1})
-        ])
+        ctk.CTkButton(btn_frame, text="应用", command=apply_change,
+                     width=80).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="取消", command=dialog.destroy,
+                     width=80, fg_color="transparent", 
+                     border_width=1).pack(side="right", padx=5)
 
-    # 以下方法已被 DialogUtils 替代，移除冗余代码
+    def browse_folder(self, folder_var):
+        """浏览文件夹"""
+        from tkinter import filedialog
+        folder = filedialog.askdirectory(title="选择文件夹")
+        if folder:
+            folder_var.set(folder)

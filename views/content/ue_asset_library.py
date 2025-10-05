@@ -413,15 +413,26 @@ class UEAssetLibraryContent(ctk.CTkFrame):
                                  font=ctk.CTkFont(size=13))
         name_label.pack(side="left", fill="x", expand=True)
         
-        # 删除按钮
-        delete_btn = ctk.CTkButton(item_frame,
-                                  text="删除",
-                                  command=lambda: self.delete_category(category, item_frame),
-                                  width=60,
-                                  height=30,
-                                  font=ctk.CTkFont(size=12),
-                                  fg_color="#d9534f",
-                                  hover_color="#c9302c")
+        # 删除按钮 - 对于默认分类禁用删除按钮
+        if category == "默认":
+            # 默认分类不可删除，显示为禁用状态
+            delete_btn = ctk.CTkButton(item_frame,
+                                      text="删除",
+                                      state="disabled",  # 禁用按钮
+                                      width=60,
+                                      height=30,
+                                      font=ctk.CTkFont(size=12),
+                                      fg_color="gray")  # 灰色表示禁用
+        else:
+            # 其他分类可以删除
+            delete_btn = ctk.CTkButton(item_frame,
+                                      text="删除",
+                                      command=lambda: self.delete_category(category, item_frame),
+                                      width=60,
+                                      height=30,
+                                      font=ctk.CTkFont(size=12),
+                                      fg_color="#d9534f",
+                                      hover_color="#c9302c")
         delete_btn.pack(side="right", padx=(5, 0))
         
         # 保存引用以便后续删除
@@ -457,6 +468,11 @@ class UEAssetLibraryContent(ctk.CTkFrame):
 
     def delete_category(self, category, item_frame):
         """删除分类"""
+        # 默认分类不可删除
+        if category == "默认":
+            self.show_status("默认分类不可删除", "error")
+            return
+            
         # 检查是否有资源使用此分类
         resources_in_category = [r for r in self.controller.asset_manager.resources 
                                 if r.get('category') == category]
@@ -511,7 +527,13 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         name_var = ctk.StringVar(value=default_name)
         name_entry = ctk.CTkEntry(form_frame, textvariable=name_var, 
                                  height=35, font=ctk.CTkFont(size=13))
-        name_entry.pack(fill="x", pady=(0, 15))
+        name_entry.pack(fill="x", pady=(0, 5))
+        
+        # 添加名称重复提示标签（默认隐藏）
+        name_error_label = ctk.CTkLabel(form_frame, text="", 
+                                       font=ctk.CTkFont(size=12),
+                                       text_color=("red", "red"))
+        name_error_label.pack(anchor="w", pady=(0, 10))
         
         # 分类
         ctk.CTkLabel(form_frame, text="分类:", 
@@ -568,7 +590,50 @@ class UEAssetLibraryContent(ctk.CTkFrame):
                                       font=ctk.CTkFont(size=13))
         readme_check.pack(anchor="w", pady=15)
         
+        # 按钮框架
+        btn_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        btn_frame.pack(fill="x", pady=20, side="bottom")  # 固定在底部
+        
+        # 创建导入按钮
+        import_button = ctk.CTkButton(btn_frame, text="导入", width=80, height=35)
+        import_button.pack(side="left", padx=5)
+        
+        ctk.CTkButton(btn_frame, text="取消", command=dialog.destroy,
+                     width=80, height=35).pack(side="right", padx=5)
+        
+        # 实时检测资源名称是否重复
+        def check_name_duplicate(*args):
+            """实时检测资源名称是否重复"""
+            resource_name = name_var.get().strip()
+            if resource_name:  # 只有当名称不为空时才检查
+                existing_resources = [r for r in self.controller.asset_manager.resources if r['name'] == resource_name]
+                if existing_resources:
+                    # 显示红色错误提示
+                    name_error_label.configure(text="资源名称已存在，请使用其他名称")
+                    # 禁用导入按钮
+                    import_button.configure(state="disabled")
+                else:
+                    # 清除错误提示
+                    name_error_label.configure(text="")
+                    # 启用导入按钮
+                    import_button.configure(state="normal")
+            else:
+                # 清除错误提示
+                name_error_label.configure(text="")
+                # 禁用导入按钮（名称为空时）
+                import_button.configure(state="disabled")
+        
+        # 绑定名称变量的变化事件
+        name_var.trace("w", check_name_duplicate)
+        
+        # 初始化导入按钮状态
+        check_name_duplicate()  # 检查初始名称状态
+        
         def finalize_import():
+            # 检查是否有名称重复错误
+            if name_error_label.cget("text"):
+                return  # 如果有错误，不执行导入操作
+            
             category = custom_category_var.get() if category_var.get() == "自定义..." else category_var.get()
             if not category:
                 self.show_status("请选择或输入分类", "error")
@@ -579,23 +644,36 @@ class UEAssetLibraryContent(ctk.CTkFrame):
                     self.show_status("添加分类失败", "error")
                     return
             
+            # 再次检查资源名称是否重复（防止在输入过程中有其他操作）
+            resource_name = name_var.get()
+            existing_resources = [r for r in self.controller.asset_manager.resources if r['name'] == resource_name]
+            if existing_resources:
+                # 在对话框中显示红色错误提示
+                name_error_label.configure(text="资源名称已存在，请使用其他名称")
+                # 禁用导入按钮
+                import_button.configure(state="disabled")
+                return
+            
             if self.controller.asset_manager.add_resource(name_var.get(), path, category, 
                                              cover_var.get(), readme_var.get()):
                 self.refresh_content()
                 dialog.destroy()
                 self.show_status(f"资源导入成功: {name_var.get()}", "success")
+                
+                # 如果勾选了创建README，则自动打开README.md文件
+                if readme_var.get():
+                    doc_path = os.path.join(path, "README.md")
+                    if os.path.exists(doc_path):
+                        try:
+                            os.startfile(doc_path)
+                        except Exception as e:
+                            print(f"打开README文件失败: {e}")
             else:
                 self.show_status("资源导入失败", "error")
         
-        # 按钮框架
-        btn_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        btn_frame.pack(fill="x", pady=20, side="bottom")  # 固定在底部
-        
-        ctk.CTkButton(btn_frame, text="导入", command=finalize_import, 
-                     width=80, height=35).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="取消", command=dialog.destroy,
-                     width=80, height=35).pack(side="right", padx=5)
-    
+        # 绑定导入按钮的命令
+        import_button.configure(command=finalize_import)
+
     def browse_cover_image(self, cover_var):
         """浏览封面图片"""
         from tkinter import filedialog

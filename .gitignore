@@ -139,3 +139,24 @@ Thumbs.db
 # Project specific
 *.zip
 *.exe
+
+# Project packaging directories
+temp_release/
+UE_Asset_Manager_Packaging/
+
+# Log files
+*.log
+
+# Backup files
+*.bak
+*.backup
+
+# IDE specific files
+*.idea/
+*.vs/
+*.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
