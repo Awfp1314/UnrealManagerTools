@@ -3,38 +3,61 @@ import json
 import time
 from datetime import datetime
 from typing import List, Dict, Optional
+from utils.config_manager import ConfigManager, get_user_config_dir
+
+# 定义默认项目配置
+DEFAULT_PROJECTS_CONFIG = {
+    "recent_projects": [],
+    "last_updated": "",
+    "settings": {
+        "auto_scan": True,
+        "scan_paths": ["C:\\"],
+        "exclude_paths": ["C:\\Windows", "C:\\Program Files"],
+        "max_projects": 50
+    },
+    "version": "1.0.0"
+}
 
 class ProjectManager:
     """虚幻引擎工程管理器"""
     
     def __init__(self):
         self.projects = []
-        self.recent_projects = []
-        self.config_file = "ue_projects.json"
-        self.load_config()
+        # 获取用户配置目录
+        config_dir = get_user_config_dir()
+            
+        self.config_file = os.path.join(config_dir, "ue_projects.json")
+        # 创建配置管理器
+        self.config_manager = ConfigManager(
+            config_file=self.config_file,
+            current_version="1.0.0",
+            default_config=DEFAULT_PROJECTS_CONFIG
+        )
+        # 加载配置
+        self.config = self.config_manager.load_config()
+        self.recent_projects = self.config.get("recent_projects", [])
     
     def load_config(self):
         """加载配置文件"""
         try:
-            if os.path.exists(self.config_file):
-                with open(self.config_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.recent_projects = data.get('recent_projects', [])
+            self.config = self.config_manager.load_config()
+            self.recent_projects = self.config.get('recent_projects', [])
         except Exception as e:
             print(f"加载配置失败: {e}")
             self.recent_projects = []
-    
+
     def save_config(self):
         """保存配置文件"""
         try:
-            data = {
-                'recent_projects': self.recent_projects,
-                'last_updated': datetime.now().isoformat()
-            }
-            with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
+            # 更新配置数据
+            self.config["recent_projects"] = self.recent_projects
+            self.config["last_updated"] = datetime.now().isoformat()
+            
+            # 保存配置
+            return self.config_manager.save_config(self.config)
         except Exception as e:
             print(f"保存配置失败: {e}")
+            return False
     
     def get_running_ue_processes(self) -> List[Dict]:
         """获取当前运行的虚幻引擎进程"""
@@ -103,8 +126,8 @@ class ProjectManager:
                 if os.path.exists(drive):
                     partitions.append(type('Partition', (), {'mountpoint': drive, 'opts': '', 'fstype': 'NTFS'})())
         
-        # 定义需要屏蔽的目录（不是真正的工程目录）
-        excluded_paths = [
+        # 获取排除路径设置
+        exclude_paths = self.config.get("settings", {}).get("exclude_paths", [
             'appdata\\roaming',  # 屏蔽 AppData\Roaming 目录
             'appdata\\local',    # 屏蔽 AppData\Local 目录  
             'temp',               # 临时文件目录
@@ -118,7 +141,7 @@ class ProjectManager:
             'node_modules',       # Node.js 模块
             '.git',               # Git 仓库
             '__pycache__',        # Python 缓存
-        ]
+        ])
         
         total_partitions = len(partitions)
         
@@ -139,7 +162,7 @@ class ProjectManager:
                     root_lower = root.lower()
                     should_skip = False
                     
-                    for excluded in excluded_paths:
+                    for excluded in exclude_paths:
                         if excluded in root_lower:
                             should_skip = True
                             break
@@ -156,7 +179,7 @@ class ProjectManager:
                             project_path_lower = project_path.lower()
                             is_excluded = False
                             
-                            for excluded in excluded_paths:
+                            for excluded in exclude_paths:
                                 if excluded in project_path_lower:
                                     is_excluded = True
                                     break

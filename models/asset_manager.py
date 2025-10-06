@@ -1,31 +1,52 @@
 import json
 import os
 from datetime import datetime
-import json
+from utils.config_manager import ConfigManager, get_user_config_dir
+
+# 定义默认资源配置
+DEFAULT_ASSETS_CONFIG = {
+    "resources": [],
+    "categories": ["默认"],
+    "category_paths": {},
+    "settings": {
+        "auto_refresh": True,
+        "show_preview": True,
+        "max_recent_files": 10
+    },
+    "version": "1.0.0"
+}
 
 class AssetManager:
     def __init__(self):
-        self.data_file = "ue_assets.json"
-        self.categories = ["全部", "默认"]  # 添加默认分类
-        self.category_paths = {}  # 存储每个分类的路径列表
-        self.resources = []
-        self.load_data()
-
+        # 获取用户配置目录
+        config_dir = get_user_config_dir()
+        
+        self.data_file = os.path.join(config_dir, "ue_assets.json")
+        # 创建配置管理器
+        self.config_manager = ConfigManager(
+            config_file=self.data_file,
+            current_version="1.0.0",
+            default_config=DEFAULT_ASSETS_CONFIG
+        )
+        # 加载配置
+        self.config = self.config_manager.load_config()
+        self.categories = ["全部"] + self.config.get("categories", ["默认"])
+        self.category_paths = self.config.get("category_paths", {})
+        self.resources = self.config.get("resources", [])
+    
     def load_data(self):
         """加载数据"""
         try:
-            if os.path.exists(self.data_file):
-                with open(self.data_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    self.resources = data.get('resources', [])
-                    # 加载自定义分类
-                    custom_cats = data.get('categories', [])
-                    for cat in custom_cats:
-                        if cat not in self.categories and cat != "全部":
-                            self.categories.append(cat)
-                    
-                    # 加载分类路径
-                    self.category_paths = data.get('category_paths', {})
+            self.config = self.config_manager.load_config()
+            self.resources = self.config.get('resources', [])
+            # 加载自定义分类
+            custom_cats = self.config.get('categories', [])
+            for cat in custom_cats:
+                if cat not in self.categories and cat != "全部":
+                    self.categories.append(cat)
+            
+            # 加载分类路径
+            self.category_paths = self.config.get('category_paths', {})
         except Exception as e:
             # 用日志记录替代控制台输出
             import logging
@@ -35,14 +56,13 @@ class AssetManager:
     def save_data(self):
         """保存数据"""
         try:
-            data = {
-                "resources": self.resources,
-                "categories": [cat for cat in self.categories if cat != "全部"],
-                "category_paths": self.category_paths  # 保存分类路径
-            }
-            with open(self.data_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            return True
+            # 更新配置数据
+            self.config["resources"] = self.resources
+            self.config["categories"] = [cat for cat in self.categories if cat != "全部"]
+            self.config["category_paths"] = self.category_paths
+            
+            # 保存配置
+            return self.config_manager.save_config(self.config)
         except Exception as e:
             import logging
             logging.error(f"保存数据失败: {str(e)}")

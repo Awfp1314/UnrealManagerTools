@@ -114,8 +114,6 @@ def package_as_exe():
         '--name', 'UE资源管理器',
         '--distpath', OUTPUT_DIR,  # 指定输出目录
         '--workpath', BUILD_DIR,   # 指定构建目录
-        '--add-data', f'{os.path.join(PROJECT_ROOT, "ue_assets.json")};.',
-        '--add-data', f'{os.path.join(PROJECT_ROOT, "ue_projects.json")};.',
     ]
     
     # 添加图标
@@ -134,27 +132,13 @@ def package_as_exe():
         
         # 复制必要的数据文件到输出目录
         if os.path.exists(OUTPUT_DIR):
-            # 检查是否有ue_assets.json文件，如果没有则创建空文件
-            assets_file = os.path.join(PROJECT_ROOT, 'ue_assets.json')
-            if not os.path.exists(assets_file):
-                with open(assets_file, 'w', encoding='utf-8') as f:
-                    f.write('{"resources": [], "categories": []}')
-                print(f"已创建空的资产数据文件: {assets_file}")
-            
-            # 检查是否有ue_projects.json文件，如果没有则创建空文件
-            projects_file = os.path.join(PROJECT_ROOT, 'ue_projects.json')
-            if not os.path.exists(projects_file):
-                with open(projects_file, 'w', encoding='utf-8') as f:
-                    f.write('{"projects": []}')
-                print(f"已创建空的项目数据文件: {projects_file}")
-            
             print(f"\n应用程序打包成功！")
             print(f"可执行文件位置: {os.path.join(OUTPUT_DIR, 'UE资源管理器.exe' if platform.system() == 'Windows' else 'UE资源管理器')}")
             print(f"所有打包文件都位于: {PACKAGING_DIR}")
             print(f"\n使用说明:")
             print(f"1. 运行UE资源管理器.exe即可启动程序")
-            print(f"2. 首次运行时会自动创建必要的数据文件")
-            print(f"3. 注意：请确保ue_assets.json和ue_projects.json文件与可执行文件在同一目录下")
+            print(f"2. 首次运行时会自动在用户数据目录创建配置文件")
+            print(f"3. 配置文件存储在用户的个人数据目录中（Windows: AppData\\Roaming\\UnrealManagerTools）")
     except subprocess.CalledProcessError as e:
         print(f"打包失败: {e}")
         sys.exit(1)
@@ -187,20 +171,6 @@ def create_release_archive():
             
             # 复制文件到临时目录
             shutil.copy2(exe_path, os.path.join(temp_dir, exe_name))
-            
-            # 复制数据文件
-            data_files = ['ue_assets.json', 'ue_projects.json']
-            for data_file in data_files:
-                src_path = os.path.join(PROJECT_ROOT, data_file)
-                if os.path.exists(src_path):
-                    shutil.copy2(src_path, os.path.join(temp_dir, data_file))
-                else:
-                    # 创建空数据文件
-                    with open(os.path.join(temp_dir, data_file), 'w', encoding='utf-8') as f:
-                        if data_file == 'ue_assets.json':
-                            f.write('{"resources": [], "categories": []}')
-                        else:
-                            f.write('{"projects": []}')
             
             # 复制README文件
             readme_path = os.path.join(PROJECT_ROOT, 'README.md')
