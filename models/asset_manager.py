@@ -7,6 +7,7 @@ class AssetManager:
     def __init__(self):
         self.data_file = "ue_assets.json"
         self.categories = ["全部", "默认"]  # 添加默认分类
+        self.category_paths = {}  # 存储每个分类的路径列表
         self.resources = []
         self.load_data()
 
@@ -22,6 +23,9 @@ class AssetManager:
                     for cat in custom_cats:
                         if cat not in self.categories and cat != "全部":
                             self.categories.append(cat)
+                    
+                    # 加载分类路径
+                    self.category_paths = data.get('category_paths', {})
         except Exception as e:
             # 用日志记录替代控制台输出
             import logging
@@ -33,7 +37,8 @@ class AssetManager:
         try:
             data = {
                 "resources": self.resources,
-                "categories": [cat for cat in self.categories if cat != "全部"]
+                "categories": [cat for cat in self.categories if cat != "全部"],
+                "category_paths": self.category_paths  # 保存分类路径
             }
             with open(self.data_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
@@ -42,6 +47,10 @@ class AssetManager:
             import logging
             logging.error(f"保存数据失败: {str(e)}")
             return False
+
+    def get_resources(self):
+        """获取所有资源"""
+        return self.resources
 
     def add_resource(self, name, path, category, cover, create_readme):
         """添加新资源"""
@@ -101,6 +110,34 @@ class AssetManager:
         if category_name and category_name not in self.categories:
             self.categories.append(category_name)
             return self.save_data()
+        return False
+
+    def add_category_path(self, category, path):
+        """为分类添加路径"""
+        if category not in self.category_paths:
+            self.category_paths[category] = []
+        
+        if path not in self.category_paths[category]:
+            self.category_paths[category].append(path)
+            return self.save_data()
+        return False
+
+    def remove_category_path(self, category, path):
+        """从分类中移除路径"""
+        if category in self.category_paths and path in self.category_paths[category]:
+            self.category_paths[category].remove(path)
+            return self.save_data()
+        return False
+
+    def get_category_paths(self, category):
+        """获取分类的路径列表"""
+        return self.category_paths.get(category, [])
+
+    def is_path_conflict(self, category, path):
+        """检查路径是否与其他分类冲突"""
+        for cat, paths in self.category_paths.items():
+            if cat != category and path in paths:
+                return True
         return False
 
     def get_filtered_resources(self, current_category, search_term):

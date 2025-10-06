@@ -20,50 +20,50 @@ class AssetCard(ctk.CTkFrame):
         self.bind_events()
 
     def create_widgets(self):
-        """创建资产卡片组件 - 紧凑布局"""
-        # 缩略图容器
-        thumbnail_frame = ctk.CTkFrame(self, fg_color="transparent", height=140)
-        thumbnail_frame.pack(fill="x", padx=10, pady=(10, 5))
+        """创建资产卡片组件 - 现代化设计"""
+        # 缩略图容器（现代化设计）
+        thumbnail_frame = ctk.CTkFrame(self, fg_color="transparent", height=160, corner_radius=10)
+        thumbnail_frame.pack(fill="x", padx=12, pady=(12, 8))
         thumbnail_frame.pack_propagate(False)
         
-        # 缩略图
-        thumbnail_size = (160, 130)  # 调整缩略图尺寸
+        # 缩略图（现代化设计）
+        thumbnail_size = (180, 140)  # 调整缩略图尺寸
         thumbnail = self.image_utils.load_thumbnail(self.asset.get('cover'), thumbnail_size)
         self.img_label = ctk.CTkLabel(thumbnail_frame, image=thumbnail, text="",
                                      fg_color="transparent", cursor="hand2")
         # 不需要手动保存引用，CTkImage会自动处理
         self.img_label.pack(expand=True)
         
-        # 资产信息
+        # 资产信息（现代化设计）
         info_frame = ctk.CTkFrame(self, fg_color="transparent")
-        info_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        info_frame.pack(fill="both", expand=True, padx=12, pady=(0, 12))
         
-        # 名称
+        # 名称（现代化设计）
         asset_name = self.asset.get('name', '未命名')
         # 如果名称太长，截断并添加省略号
-        if len(asset_name) > 18:  # 调整名称长度限制
-            asset_name = asset_name[:18] + "..."
+        if len(asset_name) > 20:  # 调整名称长度限制
+            asset_name = asset_name[:20] + "..."
             
         self.name_label = ctk.CTkLabel(info_frame, text=asset_name,
-                                      font=ctk.CTkFont(size=12, weight="bold"),  # 调整字体大小
+                                      font=ctk.CTkFont(size=14, weight="bold"),  # 调整字体大小
                                       cursor="hand2")
-        self.name_label.pack(anchor="w", pady=(0, 5))
+        self.name_label.pack(anchor="w", pady=(0, 8))
         
-        # 分类信息
+        # 分类信息（现代化设计）
         meta_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
         meta_frame.pack(fill="x")
         
-        # 分类标签
+        # 分类标签（现代化设计）
         category_text = self.asset.get('category', '未分类')
-        if len(category_text) > 10:  # 调整分类名称长度限制
-            category_text = category_text[:10] + "..."
+        if len(category_text) > 12:  # 调整分类名称长度限制
+            category_text = category_text[:12] + "..."
             
         self.category_label = ctk.CTkLabel(meta_frame, text=category_text,
-                                          font=ctk.CTkFont(size=10),  # 调整字体大小
-                                          text_color=("gray50", "gray50"))
+                                          font=ctk.CTkFont(size=12, weight="bold"),  # 调整字体大小
+                                          text_color=("#2563eb", "#60a5fa"))
         self.category_label.pack(side="left")
         
-        # 添加日期（只显示月-日）
+        # 添加日期（现代化设计，只显示月-日）
         date_added = self.asset.get('date_added', '')
         if date_added:
             try:
@@ -78,7 +78,7 @@ class AssetCard(ctk.CTkFrame):
                 
             if short_date:
                 date_label = ctk.CTkLabel(meta_frame, text=short_date,
-                                         font=ctk.CTkFont(size=9),  # 调整字体大小
+                                         font=ctk.CTkFont(size=11, weight="bold"),  # 调整字体大小
                                          text_color=("gray60", "gray60"))
                 date_label.pack(side="right")
 
@@ -104,25 +104,22 @@ class AssetCard(ctk.CTkFrame):
             widget.bind('<Leave>', self.on_leave)
 
     def on_click(self, event):
-        """处理左键点击"""
+        """处理左键点击 - 显示资产详情界面"""
         self.controller.set_current_resource(self.asset)
-<<<<<<< Updated upstream
-=======
-        # 显示资产详情
         self.show_asset_details()
 
     def show_asset_details(self):
         """显示资产详情界面"""
-        # 创建详情对话框
+        # 创建资产详情对话框
         dialog = ctk.CTkToplevel(self.controller.root)
-        dialog.title("资产详情")
-        dialog.geometry("600x700")
-        dialog.resizable(False, False)
+        dialog.title(f"资产详情 - {self.asset.get('name', '未命名')}")
+        dialog.geometry("600x550")  # 增加高度以确保按钮可见
         dialog.transient(self.controller.root)
         dialog.grab_set()
+        dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
         
         # 居中显示
-        self._center_dialog_on_main_window(dialog)
+        DialogUtils.center_window(dialog, self.controller.root)
         
         # 创建主框架
         main_frame = ctk.CTkFrame(dialog, fg_color="transparent")
@@ -133,108 +130,100 @@ class AssetCard(ctk.CTkFrame):
                                   font=ctk.CTkFont(size=20, weight="bold"))
         title_label.pack(pady=(0, 20))
         
-        # 缩略图
-        thumbnail_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        thumbnail_frame.pack(fill="x", pady=(0, 20))
+        # 创建可滚动的内容区域
+        content_scrollable = ctk.CTkScrollableFrame(main_frame, height=350)
+        content_scrollable.pack(fill="both", expand=True, pady=(0, 20))
         
-        thumbnail_size = (300, 250)
-        thumbnail = self.image_utils.load_thumbnail(self.asset.get('cover'), thumbnail_size)
-        img_label = ctk.CTkLabel(thumbnail_frame, image=thumbnail, text="")
-        img_label.pack(expand=True)
+        # 资产信息
+        info_items = [
+            ("资源名称", self.asset.get('name', '未命名')),
+            ("资源路径", self.asset.get('path', '未知')),
+            ("资源分类", self.asset.get('category', '未分类')),
+            ("添加日期", self.asset.get('date_added', '未知')),
+        ]
         
-        # 信息框架
-        info_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        info_frame.pack(fill="x", pady=(0, 20))
+        # 显示基本信息
+        for label, value in info_items:
+            item_frame = ctk.CTkFrame(content_scrollable, fg_color="transparent")
+            item_frame.pack(fill="x", pady=5)
+            
+            label_widget = ctk.CTkLabel(item_frame, text=f"{label}:",
+                                       font=ctk.CTkFont(size=13, weight="bold"),
+                                       width=100, anchor="w")
+            label_widget.pack(side="left", padx=(0, 10))
+            
+            value_widget = ctk.CTkLabel(item_frame, text=str(value),
+                                       font=ctk.CTkFont(size=13),
+                                       anchor="w")
+            value_widget.pack(side="left", fill="x", expand=True)
         
-        # 创建信息网格
-        # 资源名称
-        ctk.CTkLabel(info_frame, text="资源名称:", font=ctk.CTkFont(size=14, weight="bold")).grid(
-            row=0, column=0, sticky="w", padx=(0, 10), pady=5)
-        ctk.CTkLabel(info_frame, text=self.asset.get('name', '未命名'), 
-                    font=ctk.CTkFont(size=14)).grid(
-            row=0, column=1, sticky="w", pady=5)
+        # 封面图片（如果有）
+        cover_path = self.asset.get('cover', '')
+        if cover_path and os.path.exists(cover_path):
+            try:
+                cover_frame = ctk.CTkFrame(content_scrollable, fg_color="transparent")
+                cover_frame.pack(fill="x", pady=(10, 5))
+                
+                cover_label = ctk.CTkLabel(cover_frame, text="封面图片:",
+                                          font=ctk.CTkFont(size=13, weight="bold"))
+                cover_label.pack(anchor="w")
+                
+                # 加载并显示封面图片
+                thumbnail = self.image_utils.load_thumbnail(cover_path, (200, 150))
+                cover_image = ctk.CTkLabel(cover_frame, image=thumbnail, text="")
+                cover_image.pack(pady=10)
+            except Exception as e:
+                print(f"加载封面图片失败: {e}")
         
-        # 分类
-        ctk.CTkLabel(info_frame, text="分类:", font=ctk.CTkFont(size=14, weight="bold")).grid(
-            row=1, column=0, sticky="w", padx=(0, 10), pady=5)
-        ctk.CTkLabel(info_frame, text=self.asset.get('category', '未分类'), 
-                    font=ctk.CTkFont(size=14)).grid(
-            row=1, column=1, sticky="w", pady=5)
-        
-        # 路径
-        ctk.CTkLabel(info_frame, text="路径:", font=ctk.CTkFont(size=14, weight="bold")).grid(
-            row=2, column=0, sticky="w", padx=(0, 10), pady=5)
-        path_text = self.asset.get('path', '无')
-        # 如果路径太长，截断并添加省略号
-        if len(path_text) > 50:
-            path_text = path_text[:47] + "..."
-        path_label = ctk.CTkLabel(info_frame, text=path_text, 
-                                 font=ctk.CTkFont(size=14))
-        path_label.grid(row=2, column=1, sticky="w", pady=5)
-        
-        # 添加日期
-        ctk.CTkLabel(info_frame, text="添加日期:", font=ctk.CTkFont(size=14, weight="bold")).grid(
-            row=3, column=0, sticky="w", padx=(0, 10), pady=5)
-        ctk.CTkLabel(info_frame, text=self.asset.get('date_added', '未知'), 
-                    font=ctk.CTkFont(size=14)).grid(
-            row=3, column=1, sticky="w", pady=5)
-        
-        # 文档
-        ctk.CTkLabel(info_frame, text="文档:", font=ctk.CTkFont(size=14, weight="bold")).grid(
-            row=4, column=0, sticky="w", padx=(0, 10), pady=5)
-        doc_text = "有" if self.asset.get('doc') else "无"
-        ctk.CTkLabel(info_frame, text=doc_text, 
-                    font=ctk.CTkFont(size=14)).grid(
-            row=4, column=1, sticky="w", pady=5)
+        # 文档信息（如果有）
+        doc_path = self.asset.get('doc', '')
+        if doc_path and os.path.exists(doc_path):
+            doc_frame = ctk.CTkFrame(content_scrollable, fg_color="transparent")
+            doc_frame.pack(fill="x", pady=5)
+            
+            doc_label = ctk.CTkLabel(doc_frame, text="文档:",
+                                    font=ctk.CTkFont(size=13, weight="bold"))
+            doc_label.pack(anchor="w")
+            
+            doc_value = ctk.CTkLabel(doc_frame, text=doc_path,
+                                    font=ctk.CTkFont(size=13),
+                                    anchor="w")
+            doc_value.pack(anchor="w", pady=(0, 5))
         
         # 按钮框架
-        btn_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-        btn_frame.pack(fill="x", pady=10)
+        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        button_frame.pack(fill="x")
         
-        # 操作按钮
-        ctk.CTkButton(btn_frame, text="导入到工程", 
-                     command=lambda: [dialog.destroy(), self.import_to_ue_project()],
-                     height=35, font=ctk.CTkFont(size=13, weight="bold"),
-                     fg_color=("#9C27B0", "#7B1FA2"),
-                     hover_color=("#7B1FA2", "#6A1B9A")).pack(side="left", padx=5)
+        # 添加导入到工程按钮
+        import_btn = ctk.CTkButton(button_frame, text="🎮 导入到UE工程",
+                                  command=lambda: self.import_to_ue_project_from_details(dialog),
+                                  height=35, width=150)
+        import_btn.pack(side="left", padx=5)
         
-        ctk.CTkButton(btn_frame, text="打开文件夹", 
-                     command=lambda: self.open_folder_from_details(dialog),
-                     height=35, font=ctk.CTkFont(size=13, weight="bold"),
-                     fg_color=("#2196F3", "#14375e"),
-                     hover_color=("#1976D2", "#1e5a8a")).pack(side="left", padx=5)
+        # 添加打开文件夹按钮
+        open_btn = ctk.CTkButton(button_frame, text="📂 打开文件夹",
+                                command=self.open_folder,
+                                height=35, width=120)
+        open_btn.pack(side="left", padx=5)
         
-        ctk.CTkButton(btn_frame, text="打开文档", 
-                     command=lambda: self.open_document_from_details(dialog),
-                     height=35, font=ctk.CTkFont(size=13, weight="bold"),
-                     fg_color=("#4CAF50", "#2E7D32"),
-                     hover_color=("#388E3C", "#1B5E20")).pack(side="left", padx=5)
+        # 添加编辑按钮
+        edit_btn = ctk.CTkButton(button_frame, text="✏️ 编辑",
+                                command=self.edit_asset,
+                                height=35, width=80)
+        edit_btn.pack(side="left", padx=5)
         
-        ctk.CTkButton(btn_frame, text="编辑资产", 
-                     command=lambda: [dialog.destroy(), self.edit_asset()],
-                     height=35, font=ctk.CTkFont(size=13, weight="bold"),
-                     fg_color=("#FF9800", "#EF6C00"),
-                     hover_color=("#F57C00", "#E65100")).pack(side="left", padx=5)
-        
-        ctk.CTkButton(btn_frame, text="关闭", 
-                     command=dialog.destroy,
-                     height=35, font=ctk.CTkFont(size=13, weight="bold"),
-                     fg_color=("#f44336", "#d32f2f"),
-                     hover_color=("#d32f2f", "#b71c1c")).pack(side="right", padx=5)
-        
-        # 配置网格列权重
-        info_frame.columnconfigure(1, weight=1)
+        # 关闭按钮
+        close_btn = ctk.CTkButton(button_frame, text="关闭",
+                                 command=dialog.destroy,
+                                 height=35, width=80)
+        close_btn.pack(side="right", padx=5)
 
-    def open_folder_from_details(self, dialog):
-        """从详情界面打开文件夹"""
+    def import_to_ue_project_from_details(self, dialog):
+        """从资产详情界面导入到UE工程"""
+        # 关闭详情对话框
         dialog.destroy()
-        self.open_folder()
-
-    def open_document_from_details(self, dialog):
-        """从详情界面打开文档"""
-        dialog.destroy()
-        self.open_document()
->>>>>>> Stashed changes
+        # 调用原有的导入到UE工程方法
+        self.import_to_ue_project()
 
     def on_right_click(self, event):
         """处理右键点击 - 优化版本，支持鼠标移出自动关闭"""
@@ -406,12 +395,16 @@ class AssetCard(ctk.CTkFrame):
                 self.controller.show_status("资源路径不存在", "error")
 
     def on_enter(self, event):
-        """鼠标进入"""
-        self.configure(fg_color=("gray80", "gray40"))
+        """鼠标进入 - 现代化悬停效果"""
+        self.configure(fg_color=("#e0f2fe", "#1e3a8a"),
+                      border_color=("#3b82f6", "#60a5fa"),
+                      border_width=2)
 
     def on_leave(self, event):
-        """鼠标离开"""
-        self.configure(fg_color=("gray90", "gray25"))
+        """鼠标离开 - 恢复默认样式"""
+        self.configure(fg_color=("gray90", "gray25"),
+                      border_color=("gray70", "gray30"),
+                      border_width=1)
 
     def open_document(self):
         """打开文档"""
@@ -463,13 +456,13 @@ class AssetCard(ctk.CTkFrame):
         # 创建工程选择对话框
         selection_dialog = ctk.CTkToplevel(self.controller.root)
         selection_dialog.title("选择虚幻引擎工程")
-        selection_dialog.geometry("800x700")  # 进一步增加尺寸，确保按钮有足够空间
+        selection_dialog.geometry("800x600")  # 减小尺寸，确保按钮有足够空间
         selection_dialog.transient(self.controller.root)
         selection_dialog.grab_set()
-        selection_dialog.resizable(True, True)  # 允许用户调整大小
+        selection_dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
         
         # 居中显示
-        DialogUtils.center_window(selection_dialog)
+        DialogUtils.center_window(selection_dialog, self.controller.root)
         
         # 主框架 - 减少内边距，给内容更多空间
         main_frame = ctk.CTkFrame(selection_dialog, fg_color="transparent")
@@ -503,7 +496,7 @@ class AssetCard(ctk.CTkFrame):
         self.display_found_projects_simple(scrollable_frame, projects, archive_files)
         
         # 按钮框架 - 确保有足够空间且不收缩
-        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent", height=50)
+        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent", height=60)  # 增加高度确保按钮可见
         button_frame.pack(fill="x", pady=(10, 0))
         button_frame.pack_propagate(False)  # 防止框架收缩
         
@@ -511,7 +504,7 @@ class AssetCard(ctk.CTkFrame):
         manual_button = ctk.CTkButton(button_frame, text="手动选择文件", 
                                      width=120, height=35,
                                      command=lambda: self.manual_select_project(selection_dialog, archive_files))
-        manual_button.pack(side="left", padx=(0, 10), pady=5)
+        manual_button.pack(side="left", padx=(0, 10), pady=(10, 5))  # 调整padding确保可见
         
         # 取消按钮 - 设置明确的尺寸
         cancel_button = ctk.CTkButton(button_frame, text="取消",
@@ -519,7 +512,7 @@ class AssetCard(ctk.CTkFrame):
                                      command=selection_dialog.destroy,
                                      fg_color="transparent",
                                      border_width=1)
-        cancel_button.pack(side="right", padx=(10, 0), pady=5)
+        cancel_button.pack(side="right", padx=(10, 0), pady=(10, 5))  # 调整padding确保可见
         
         # 存储找到的工程
         self.found_projects = projects
@@ -685,12 +678,13 @@ class AssetCard(ctk.CTkFrame):
         # 创建进度对话框
         progress_dialog = ctk.CTkToplevel(self.controller.root)
         progress_dialog.title("导入到虚幻引擎工程")
-        progress_dialog.geometry("500x250")  # 增加高度以显示更多信息
+        progress_dialog.geometry("500x200")  # 减小高度以显示更多信息
         progress_dialog.transient(self.controller.root)
         progress_dialog.grab_set()
+        progress_dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
         
         # 居中显示
-        DialogUtils.center_window(progress_dialog)
+        DialogUtils.center_window(progress_dialog, self.controller.root)
         
         # 创建进度界面
         main_frame = ctk.CTkFrame(progress_dialog, fg_color="transparent")
@@ -801,7 +795,6 @@ class AssetCard(ctk.CTkFrame):
                                     self.show_import_error(msg)
                                 except:
                                     pass
-                            return show
                         progress_dialog.after(0, show_error(error_msg))
                     elif success:
                         print(f"导入 {filename} 成功")
@@ -855,7 +848,6 @@ class AssetCard(ctk.CTkFrame):
                             self.show_import_error(msg)
                         except:
                             pass
-                    return show
                 progress_dialog.after(0, show_error(error_msg))
         
         # 启动导入线程
@@ -1354,12 +1346,13 @@ class AssetCard(ctk.CTkFrame):
         # 创建编辑资产对话框
         dialog = ctk.CTkToplevel(self.controller.root)
         dialog.title("编辑资产")
-        dialog.geometry("500x650")  # 增加高度以适应所有内容
+        dialog.geometry("500x600")  # 增加高度以确保按钮可见
         dialog.transient(self.controller.root)
         dialog.grab_set()
+        dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
         
         # 居中显示
-        DialogUtils.center_window(dialog)
+        DialogUtils.center_window(dialog, self.controller.root)
         
         # 创建表单
         form_frame = ctk.CTkFrame(dialog, fg_color="transparent")
@@ -1517,12 +1510,13 @@ class AssetCard(ctk.CTkFrame):
         # 创建更改分类对话框
         dialog = ctk.CTkToplevel(self.controller.root)
         dialog.title("更改分类")
-        dialog.geometry("400x400")
+        dialog.geometry("400x350")  # 增加高度以确保按钮可见
         dialog.transient(self.controller.root)
         dialog.grab_set()
+        dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
         
         # 居中显示
-        DialogUtils.center_window(dialog)
+        DialogUtils.center_window(dialog, self.controller.root)
         
         # 创建表单
         form_frame = ctk.CTkFrame(dialog, fg_color="transparent")

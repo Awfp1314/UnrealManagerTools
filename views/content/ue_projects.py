@@ -660,7 +660,7 @@ class UEProjectsContent(ctk.CTkFrame):
         info_dialog.grab_set()
         
         # 居中显示
-        DialogUtils.center_window(info_dialog)
+        DialogUtils.center_window(info_dialog, self.controller.root)
         
         # 主框架
         main_frame = ctk.CTkFrame(info_dialog, fg_color="transparent")
