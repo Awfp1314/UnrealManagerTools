@@ -5,22 +5,34 @@ class DialogUtils:
     """对话框工具类 - 统一管理常用对话框操作"""
     
     @staticmethod
-    def center_window(window):
-        """居中显示窗口 - 增强版，确保窗口正确居中"""
+    def center_window(window, parent=None):
+        """居中显示窗口 - 增强版，确保窗口正确居中
+        如果提供了parent参数，则相对于父窗口居中，否则相对于屏幕居中"""
         # 强制更新窗口信息
         window.update_idletasks()
-        
-        # 获取屏幕尺寸
-        screen_width = window.winfo_screenwidth()
-        screen_height = window.winfo_screenheight()
         
         # 获取窗口尺寸
         window_width = window.winfo_width()
         window_height = window.winfo_height()
         
-        # 计算居中位置
-        x = (screen_width - window_width) // 2
-        y = (screen_height - window_height) // 2
+        if parent and parent.winfo_exists():
+            # 相对于父窗口居中
+            parent_x = parent.winfo_x()
+            parent_y = parent.winfo_y()
+            parent_width = parent.winfo_width()
+            parent_height = parent.winfo_height()
+            
+            # 计算居中位置
+            x = parent_x + (parent_width - window_width) // 2
+            y = parent_y + (parent_height - window_height) // 2
+        else:
+            # 相对于屏幕居中
+            screen_width = window.winfo_screenwidth()
+            screen_height = window.winfo_screenheight()
+            
+            # 计算居中位置
+            x = (screen_width - window_width) // 2
+            y = (screen_height - window_height) // 2
         
         # 设置窗口位置
         window.geometry(f"+{x}+{y}")

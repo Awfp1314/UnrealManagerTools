@@ -17,7 +17,7 @@ class SettingsDialog:
         self.dialog.resizable(False, False)
         
         # 居中显示对话框
-        DialogUtils.center_window(self.dialog)
+        DialogUtils.center_window(self.dialog, self.root)
         
         # 使对话框模态
         self.dialog.grab_set()

@@ -160,7 +160,7 @@ class ContentManager(ctk.CTkFrame):
         self.update_loading_progress(1.0, message)
         self.after(300, lambda: [
             self.hide_loading_screen(),
-            self.show_page("ue_projects")  # 显示默认页面
+            self.show_page("ue_asset_library")  # 显示默认页面（虚幻资产库）
         ])
 
     def show_page(self, page_name):

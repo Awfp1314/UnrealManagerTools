@@ -42,15 +42,15 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         threading.Thread(target=preload_thread, daemon=True).start()
 
     def create_widgets(self):
-        """创建内容区域组件"""
-        # 内容头部
-        header_frame = ctk.CTkFrame(self, fg_color="transparent", height=80)
-        header_frame.pack(fill="x", padx=20, pady=10)
+        """创建内容区域组件 - 现代化设计"""
+        # 内容头部（现代化设计）
+        header_frame = ctk.CTkFrame(self, fg_color="transparent", height=100, corner_radius=15)
+        header_frame.pack(fill="x", padx=20, pady=(20, 10))
         header_frame.pack_propagate(False)
         
         # 顶部：标题和资产总数
         top_header = ctk.CTkFrame(header_frame, fg_color="transparent")
-        top_header.pack(fill="x", pady=(0, 10))
+        top_header.pack(fill="x", pady=(0, 15))
         
         # 工具名称标题和资产总数
         title_frame = ctk.CTkFrame(top_header, fg_color="transparent")
@@ -58,14 +58,14 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         
         self.tool_title = ctk.CTkLabel(title_frame, 
                                       text="虚幻资产库",
-                                      font=ctk.CTkFont(size=18, weight="bold"))
+                                      font=ctk.CTkFont(size=24, weight="bold"))
         self.tool_title.pack(side="left")
         
         self.asset_count_label = ctk.CTkLabel(title_frame, 
                                              text="",
-                                             font=ctk.CTkFont(size=14),
-                                             text_color=("gray50", "gray50"))
-        self.asset_count_label.pack(side="left", padx=(10, 0))
+                                             font=ctk.CTkFont(size=16, weight="bold"),
+                                             text_color=("#2563eb", "#60a5fa"))
+        self.asset_count_label.pack(side="left", padx=(15, 0))
         
         # 底部：搜索和操作区域
         bottom_header = ctk.CTkFrame(header_frame, fg_color="transparent")
@@ -75,79 +75,92 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         search_frame = ctk.CTkFrame(bottom_header, fg_color="transparent")
         search_frame.pack(side="left", fill="x", expand=True)
         
-        # 搜索框
+        # 搜索框（现代化设计）
         self.search_entry = SearchEntry(search_frame, 
-                                       placeholder_text="搜索资产...",
-                                       height=35,
+                                       placeholder_text="🔍 搜索资产...",
+                                       height=40,
                                        command=self.on_search)
         self.search_entry.pack(side="left", fill="x", expand=True)
         
-        # 右侧：操作按钮
+        # 右侧：操作按钮组
         ops_frame = ctk.CTkFrame(bottom_header, fg_color="transparent")
-        ops_frame.pack(side="right", padx=(10, 0))
+        ops_frame.pack(side="right", padx=(15, 0))
         
-        # 分类下拉框
+        # 分类下拉框（现代化设计）
         category_frame = ctk.CTkFrame(ops_frame, fg_color="transparent")
-        category_frame.pack(side="left", padx=(0, 10))
+        category_frame.pack(side="left", padx=(0, 15))
         
         self.category_var = ctk.StringVar(value="全部")
         self.category_combo = ctk.CTkComboBox(category_frame, 
                                             variable=self.category_var,
                                             values=self.controller.asset_manager.categories,
                                             command=self.on_category_change,
-                                            width=120,
-                                            height=35,
-                                            state="readonly")  # 设置为不可编辑
-        
+                                            width=150,
+                                            height=40,
+                                            state="readonly",
+                                            font=ctk.CTkFont(size=13),
+                                            dropdown_font=ctk.CTkFont(size=13))
         self.category_combo.pack(side="left")
         
         # 使用延迟自动关闭下拉菜单，同时保留悬浮动画
         self.category_combo.bind("<<ComboboxSelected>>", self._start_close_timer)
         self.close_timer = None
         
-        # 刷新按钮
-        self.refresh_btn = ctk.CTkButton(ops_frame, 
-                                        text="🔄刷新数据",
+        # 按钮框架（现代化设计）
+        buttons_frame = ctk.CTkFrame(ops_frame, fg_color="transparent")
+        buttons_frame.pack(side="left")
+        
+        # 刷新按钮（现代化设计）
+        self.refresh_btn = ctk.CTkButton(buttons_frame, 
+                                        text="🔄 刷新",
                                         command=lambda: self.refresh_content(force=True),
-                                        height=35,
-                                        width=60,
-                                        font=ctk.CTkFont(size=13))
+                                        height=40,
+                                        width=100,
+                                        font=ctk.CTkFont(size=13, weight="bold"),
+                                        fg_color=("#2563eb", "#3b82f6"),
+                                        hover_color=("#1d4ed8", "#2563eb"))
         self.refresh_btn.pack(side="left", padx=5)
         
-        # 管理分类按钮
-        self.manage_category_btn = ctk.CTkButton(ops_frame, 
-                                                text="管理分类",
+        # 管理分类按钮（现代化设计）
+        self.manage_category_btn = ctk.CTkButton(buttons_frame, 
+                                                text="📂 分类",
                                                 command=self.show_manage_categories_dialog,
-                                                height=35,
-                                                width=80,
-                                                font=ctk.CTkFont(size=13))
+                                                height=40,
+                                                width=100,
+                                                font=ctk.CTkFont(size=13, weight="bold"),
+                                                fg_color=("#8b5cf6", "#a78bfa"),
+                                                hover_color=("#7c3aed", "#8b5cf6"))
         self.manage_category_btn.pack(side="left", padx=5)
         
-        # 添加资产按钮
-        self.add_btn = ctk.CTkButton(ops_frame, 
-                                    text="+添加资产",
+        # 添加资产按钮（现代化设计）
+        self.add_btn = ctk.CTkButton(buttons_frame, 
+                                    text="➕ 添加",
                                     command=self.import_assets,
-                                    height=35,
-                                    width=80,
-                                    font=ctk.CTkFont(size=13))
+                                    height=40,
+                                    width=100,
+                                    font=ctk.CTkFont(size=13, weight="bold"),
+                                    fg_color=("#10b981", "#34d399"),
+                                    hover_color=("#059669", "#10b981"))
         self.add_btn.pack(side="left", padx=5)
         
-        # 刷新状态提示
-        self.status_frame = ctk.CTkFrame(self, fg_color="transparent", height=30)
-        self.status_frame.pack(fill="x", padx=20, pady=(0, 5))
+        # 刷新状态提示（现代化设计）
+        self.status_frame = ctk.CTkFrame(self, fg_color="transparent", height=40)
+        self.status_frame.pack(fill="x", padx=20, pady=(0, 10))
         self.status_frame.pack_propagate(False)
         
         self.status_label = ctk.CTkLabel(self.status_frame, 
                                         text="",
-                                        font=ctk.CTkFont(size=12),
+                                        font=ctk.CTkFont(size=13, weight="bold"),
                                         text_color=("gray50", "gray50"))
         self.status_label.pack(side="left")
         
-        # 创建资产网格容器 - 优化背景显示
+        # 创建资产网格容器 - 现代化背景显示
         self.asset_scrollable = ctk.CTkScrollableFrame(self, 
-                                                      fg_color=("gray95", "gray15"),  # 设置浅色背景
-                                                      corner_radius=8)
-        self.asset_scrollable.pack(fill="both", expand=True, padx=10, pady=10)
+                                                      fg_color=("gray90", "gray15"),
+                                                      corner_radius=15,
+                                                      border_width=1,
+                                                      border_color=("gray80", "gray20"))
+        self.asset_scrollable.pack(fill="both", expand=True, padx=20, pady=(0, 20))
 
     def on_search(self, search_term):
         """处理搜索"""
@@ -196,6 +209,10 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         # 更新分类下拉框 - 修复同步问题
         self.update_category_combo()
         
+        # 执行分类路径扫描（仅在强制刷新时执行）
+        if force and self.controller.app_state.current_category != "全部":
+            self.scan_category_paths(self.controller.app_state.current_category)
+        
         # 获取过滤后的资源
         filtered_assets = self.controller.asset_manager.get_filtered_resources(
             self.controller.app_state.current_category, 
@@ -218,7 +235,265 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         
         # 显示刷新成功状态
         self.show_status("刷新成功", "success")
-    
+
+    def scan_category_paths(self, category):
+        """扫描分类路径并添加新资产"""
+        # 获取分类路径
+        paths = self.controller.asset_manager.get_category_paths(category)
+        
+        if not paths:
+            return
+            
+        # 收集所有新文件夹
+        new_folders = []
+        
+        # 获取现有资源路径集合（用于快速查找）
+        existing_paths = {asset['path'] for asset in self.controller.asset_manager.resources}
+        
+        # 扫描每个路径
+        for path in paths:
+            if not os.path.exists(path):
+                continue
+                
+            try:
+                # 遍历路径下的所有文件夹
+                for item in os.listdir(path):
+                    item_path = os.path.join(path, item)
+                    if os.path.isdir(item_path):
+                        # 检查是否已存在
+                        if item_path not in existing_paths:
+                            new_folders.append({
+                                'name': item,
+                                'path': item_path,
+                                'parent_path': path,
+                                'category': category
+                            })
+            except Exception as e:
+                print(f"扫描路径 {path} 时出错: {e}")
+        
+        # 如果有新文件夹，触发添加资产弹窗
+        if new_folders:
+            self.show_add_new_assets_dialog(new_folders)
+
+    def show_add_new_assets_dialog(self, new_folders):
+        """显示添加新资产对话框（批量处理）"""
+        if not new_folders:
+            return
+            
+        # 创建批量处理队列
+        self.new_folders_queue = new_folders
+        self.current_folder_index = 0
+        
+        # 显示第一个文件夹的添加对话框
+        self.show_next_add_asset_dialog()
+
+    def show_next_add_asset_dialog(self):
+        """显示下一个添加资产对话框"""
+        if self.current_folder_index >= len(self.new_folders_queue):
+            # 所有文件夹处理完成，刷新界面
+            self.refresh_content()
+            return
+            
+        # 获取当前文件夹
+        folder_info = self.new_folders_queue[self.current_folder_index]
+        
+        # 显示导入对话框（使用文件夹信息）
+        self.show_import_dialog_for_new_folder(folder_info)
+
+    def show_import_dialog_for_new_folder(self, folder_info):
+        """为新文件夹显示导入对话框"""
+        dialog = ctk.CTkToplevel(self.controller.root)
+        dialog.title("添加新资产")
+        dialog.geometry("500x550")  # 增加高度以确保按钮可见
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
+        
+        # 居中显示
+        DialogUtils.center_window(dialog, self.controller.root)
+        
+        # 创建表单
+        form_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        form_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # 资源名称
+        ctk.CTkLabel(form_frame, text="资源名称:", 
+                    font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
+        name_var = ctk.StringVar(value=folder_info['name'])
+        name_entry = ctk.CTkEntry(form_frame, textvariable=name_var, 
+                                 height=35, font=ctk.CTkFont(size=13))
+        name_entry.pack(fill="x", pady=(0, 5))
+        
+        # 添加名称重复提示标签（默认隐藏）
+        name_error_label = ctk.CTkLabel(form_frame, text="", 
+                                       font=ctk.CTkFont(size=12),
+                                       text_color=("red", "red"))
+        name_error_label.pack(anchor="w", pady=(0, 10))
+        
+        # 分类
+        ctk.CTkLabel(form_frame, text="分类:", 
+                    font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
+        category_var = ctk.StringVar(value=folder_info['category'])
+        
+        # 添加自定义选项到分类列表
+        category_list = [cat for cat in self.controller.asset_manager.categories if cat != "全部"]
+        if "自定义..." not in category_list:
+            category_list.append("自定义...")
+            
+        category_combo = ctk.CTkComboBox(form_frame, variable=category_var, 
+                                       values=category_list,
+                                       height=35, font=ctk.CTkFont(size=13),
+                                       state="disabled")  # 禁用分类选择，使用扫描的分类
+        category_combo.pack(fill="x", pady=(0, 15))
+        
+        # 自定义分类输入框（默认隐藏）
+        custom_category_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        custom_category_var = ctk.StringVar()
+        custom_category_entry = ctk.CTkEntry(custom_category_frame, 
+                                           textvariable=custom_category_var,
+                                           placeholder_text="输入新分类名称",
+                                           height=35, font=ctk.CTkFont(size=13),
+                                           state="readonly")
+        
+        def on_category_change(choice):
+            if choice == "自定义...":
+                custom_category_frame.pack(fill="x", pady=(5, 15))
+                custom_category_entry.pack(fill="x")
+                custom_category_entry.configure(state="normal")
+            else:
+                custom_category_frame.pack_forget()
+                custom_category_entry.configure(state="readonly")
+        
+        category_combo.configure(command=on_category_change)
+        
+        # 封面图片
+        ctk.CTkLabel(form_frame, text="封面图片:", 
+                    font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
+        cover_var = ctk.StringVar()
+        cover_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        cover_frame.pack(fill="x", pady=(0, 15))
+        cover_entry = ctk.CTkEntry(cover_frame, textvariable=cover_var,
+                                  font=ctk.CTkFont(size=13))
+        cover_entry.pack(side="left", fill="x", expand=True)
+        
+        ctk.CTkButton(cover_frame, text="选择", width=80,
+                     command=lambda: self.browse_cover_image(cover_var)).pack(side="right", padx=(5, 0))
+        
+        # 是否创建README
+        readme_var = ctk.BooleanVar(value=False)
+        readme_check = ctk.CTkCheckBox(form_frame, text="创建README.md文档",
+                                      variable=readme_var,
+                                      font=ctk.CTkFont(size=13))
+        readme_check.pack(anchor="w", pady=15)
+        
+        # 按钮框架
+        btn_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        btn_frame.pack(fill="x", pady=20, side="bottom")
+        
+        # 创建导入按钮
+        import_button = ctk.CTkButton(btn_frame, text="导入", width=80, height=35)
+        import_button.pack(side="left", padx=5)
+        
+        skip_button = ctk.CTkButton(btn_frame, text="跳过", 
+                                   command=lambda: self.skip_current_folder(dialog),
+                                   width=80, height=35, fg_color="transparent", 
+                                   border_width=1)
+        skip_button.pack(side="left", padx=5)
+        
+        ctk.CTkButton(btn_frame, text="取消", command=lambda: self.cancel_batch_import(dialog),
+                     width=80, height=35, fg_color="transparent", 
+                     border_width=1).pack(side="right", padx=5)
+        
+        # 实时检测资源名称是否重复
+        def check_name_duplicate(*args):
+            """实时检测资源名称是否重复"""
+            resource_name = name_var.get().strip()
+            # 只有当名称不为空时才检查
+            if resource_name:
+                existing_resources = [r for r in self.controller.asset_manager.resources if r['name'] == resource_name]
+                if existing_resources:
+                    # 显示红色错误提示
+                    name_error_label.configure(text="资源名称已存在，请使用其他名称")
+                    # 禁用导入按钮
+                    import_button.configure(state="disabled")
+                else:
+                    # 清除错误提示
+                    name_error_label.configure(text="")
+                    # 启用导入按钮
+                    import_button.configure(state="normal")
+            else:
+                # 清除错误提示
+                name_error_label.configure(text="")
+                # 禁用导入按钮（名称为空时）
+                import_button.configure(state="disabled")
+        
+        # 绑定名称变量的变化事件
+        name_var.trace("w", check_name_duplicate)
+        
+        # 初始化导入按钮状态
+        check_name_duplicate()  # 检查初始名称状态
+        
+        def finalize_import():
+            # 检查是否有名称重复错误
+            if name_error_label.cget("text"):
+                return  # 如果有错误，不执行导入操作
+            
+            category = custom_category_var.get() if category_var.get() == "自定义..." else category_var.get()
+            if not category:
+                self.show_status("请选择或输入分类", "error")
+                return
+                
+            if category_var.get() == "自定义...":
+                if not self.controller.asset_manager.add_category(category):
+                    self.show_status("添加分类失败", "error")
+                    return
+            
+            # 再次检查资源名称是否重复（防止在输入过程中有其他操作）
+            resource_name = name_var.get()
+            existing_resources = [r for r in self.controller.asset_manager.resources if r['name'] == resource_name]
+            if existing_resources:
+                # 在对话框中显示红色错误提示
+                name_error_label.configure(text="资源名称已存在，请使用其他名称")
+                # 禁用导入按钮
+                import_button.configure(state="disabled")
+                return
+            
+            if self.controller.asset_manager.add_resource(name_var.get(), folder_info['path'], category, 
+                                             cover_var.get(), readme_var.get()):
+                dialog.destroy()
+                self.show_status(f"资源导入成功: {name_var.get()}", "success")
+                
+                # 如果勾选了创建README，则自动打开README.md文件
+                if readme_var.get():
+                    doc_path = os.path.join(folder_info['path'], "README.md")
+                    if os.path.exists(doc_path):
+                        try:
+                            os.startfile(doc_path)
+                        except Exception as e:
+                            print(f"打开README文件失败: {e}")
+                
+                # 处理下一个文件夹
+                self.current_folder_index += 1
+                self.show_next_add_asset_dialog()
+            else:
+                self.show_status("资源导入失败", "error")
+        
+        # 绑定导入按钮的命令
+        import_button.configure(command=finalize_import)
+
+    def skip_current_folder(self, dialog):
+        """跳过当前文件夹"""
+        dialog.destroy()
+        self.current_folder_index += 1
+        self.show_next_add_asset_dialog()
+
+    def cancel_batch_import(self, dialog):
+        """取消批量导入"""
+        dialog.destroy()
+        self.new_folders_queue = []
+        self.current_folder_index = 0
+        self.refresh_content()
+
     def _update_display_only(self):
         """仅更新显示，不重新加载数据"""
         try:
@@ -325,13 +600,14 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         """显示管理分类对话框 - 修改了窗口大小"""
         dialog = ctk.CTkToplevel(self.controller.root)
         dialog.title("管理分类")
-        # 修改窗口大小：宽度x高度
-        dialog.geometry("600x500")  # 增大了窗口尺寸
+        # 修改窗口大小：宽度x高度（增加高度以确保按钮可见）
+        dialog.geometry("600x500")  # 增加窗口高度
         dialog.transient(self.controller.root)
         dialog.grab_set()
+        dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
         
         # 居中显示
-        DialogUtils.center_window(dialog)
+        DialogUtils.center_window(dialog, self.controller.root)
         
         # 创建主框架
         main_frame = ctk.CTkFrame(dialog, fg_color="transparent")
@@ -354,7 +630,7 @@ class UEAssetLibraryContent(ctk.CTkFrame):
                     font=ctk.CTkFont(size=14, weight="bold")).pack(side="left")
         
         # 分类列表
-        self.categories_scrollable = ctk.CTkScrollableFrame(list_frame, height=200)
+        self.categories_scrollable = ctk.CTkScrollableFrame(list_frame, height=250)  # 增加高度
         self.categories_scrollable.pack(fill="both", expand=True)
         
         # 加载分类列表
@@ -508,12 +784,13 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         """显示导入对话框"""
         dialog = ctk.CTkToplevel(self.controller.root)
         dialog.title("导入资源")
-        dialog.geometry("500x600")  # 增加高度以适应所有内容
+        dialog.geometry("500x550")  # 增加高度以确保按钮可见
         dialog.transient(self.controller.root)
         dialog.grab_set()
+        dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
         
         # 居中显示
-        DialogUtils.center_window(dialog)
+        DialogUtils.center_window(dialog, self.controller.root)
         
         # 创建表单
         form_frame = ctk.CTkFrame(dialog, fg_color="transparent")
