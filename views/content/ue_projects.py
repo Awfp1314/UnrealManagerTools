@@ -655,12 +655,13 @@ class UEProjectsContent(ctk.CTkFrame):
         # 创建信息对话框
         info_dialog = ctk.CTkToplevel(self.controller.root)
         info_dialog.title(f"工程信息 - {project['name']}")
-        info_dialog.geometry("500x400")
+        info_dialog.geometry("500x350")  # 减小高度以保持界面美观
+        info_dialog.resizable(False, False)  # 设置为不可由用户自由调整大小
         info_dialog.transient(self.controller.root)
         info_dialog.grab_set()
         
-        # 居中显示
-        DialogUtils.center_window(info_dialog)
+        # 确保对话框始终位于主窗口的视觉中心
+        self._center_dialog_on_main_window(info_dialog)
         
         # 主框架
         main_frame = ctk.CTkFrame(info_dialog, fg_color="transparent")
@@ -763,3 +764,28 @@ class UEProjectsContent(ctk.CTkFrame):
         
         # 3秒后清空状态
         self.after(3000, lambda: self.status_label.configure(text=""))
+    
+    def _center_dialog_on_main_window(self, dialog):
+        """将对话框居中显示在主窗口上"""
+        # 等待窗口更新
+        dialog.update_idletasks()
+        
+        # 获取主窗口的位置和尺寸
+        main_window = self.controller.root
+        main_window.update_idletasks()
+        
+        main_x = main_window.winfo_x()
+        main_y = main_window.winfo_y()
+        main_width = main_window.winfo_width()
+        main_height = main_window.winfo_height()
+        
+        # 获取对话框的尺寸
+        dialog_width = dialog.winfo_width()
+        dialog_height = dialog.winfo_height()
+        
+        # 计算对话框应该出现的位置（主窗口的视觉中心）
+        dialog_x = main_x + (main_width - dialog_width) // 2
+        dialog_y = main_y + (main_height - dialog_height) // 2
+        
+        # 设置对话框位置
+        dialog.geometry(f"+{dialog_x}+{dialog_y}")

@@ -17,6 +17,10 @@ def main():
     ctk.set_appearance_mode("Dark")
     ctk.set_default_color_theme("blue")
     
+    # 初始化数据管理器和应用状态
+    asset_manager = AssetManager()
+    app_state = AppState()
+    
     # 创建主窗口
     root = ctk.CTk()
     
@@ -43,13 +47,6 @@ def main():
     
     # 禁用自由调整大小
     root.resizable(False, False)
-    
-    # 强制更新窗口信息
-    root.update_idletasks()
-    
-    # 初始化数据管理器和应用状态
-    asset_manager = AssetManager()
-    app_state = AppState()
     
     # 创建主界面
     app = MainWindow(root, asset_manager, app_state)

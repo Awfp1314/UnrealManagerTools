@@ -4,23 +4,53 @@
       "name": "Backroom1",
       "path": "E:/UE_Asset/Backroom",
       "category": "默认",
-      "cover": "E:/UE_Asset/Backroom/HighresScreenshot00001.png",
+      "cover": "E:/UE_Asset/Backroom/HighresScreenshot00000.png",
       "doc": "E:/UE_Asset/Backroom\\README.md",
-      "date_added": "2025-10-05 23:18:54"
+      "date_added": "2025-10-06 11:26:32"
     },
     {
-      "name": "Backroom 的",
-      "path": "E:/UE_Asset/Backroom",
+      "name": "1",
+      "path": "E:/UE_Asset/1",
       "category": "默认",
-      "cover": "E:/UE_Asset/Backroom/HighresScreenshot00002.png",
-      "doc": "E:/UE_Asset/Backroom\\README.md",
-      "date_added": "2025-10-05 23:25:24"
+      "cover": "",
+      "doc": "",
+      "date_added": "2025-10-06 11:28:08"
+    },
+    {
+      "name": "2",
+      "path": "E:\\UE_Asset\\2",
+      "category": "默认",
+      "cover": "",
+      "doc": "",
+      "date_added": "2025-10-06 11:50:13"
+    },
+    {
+      "name": "3",
+      "path": "E:\\UE_Asset\\3",
+      "category": "默认",
+      "cover": "",
+      "doc": "",
+      "date_added": "2025-10-06 11:50:15"
+    },
+    {
+      "name": "4",
+      "path": "E:\\UE_Asset\\4",
+      "category": "默认",
+      "cover": "",
+      "doc": "",
+      "date_added": "2025-10-06 11:50:15"
     }
   ],
   "categories": [
     "默认",
-    "1",
-    "2",
-    "3"
-  ]
+    "场景",
+    "测试"
+  ],
+  "category_paths": {
+    "默认": [
+      "E:/UE_Asset"
+    ],
+    "场景": [],
+    "测试": []
+  }
 }

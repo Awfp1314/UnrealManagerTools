@@ -160,8 +160,12 @@ class ContentManager(ctk.CTkFrame):
         self.update_loading_progress(1.0, message)
         self.after(300, lambda: [
             self.hide_loading_screen(),
-            self.show_page("ue_projects")  # 显示默认页面
+            self.show_page("ue_asset_library")  # 显示默认页面
         ])
+        
+        # 通知主窗口加载完成
+        if hasattr(self.controller, 'on_loading_complete') and self.controller.on_loading_complete:
+            self.controller.on_loading_complete()
 
     def show_page(self, page_name):
         """显示指定页面 - 真正的原子切换，无闪烁无绘制痕迹"""

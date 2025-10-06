@@ -8,6 +8,7 @@ class MainWindow:
         self.root = root
         self.asset_manager = asset_manager
         self.app_state = app_state
+        self.on_loading_complete = None
         
         # 初始化UI
         self.setup_window()

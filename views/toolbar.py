@@ -10,8 +10,8 @@ class Toolbar(ctk.CTkFrame):
         self.buttons = {}  # 存储按钮引用
         self.current_tool = None  # 当前选中的工具
         self.create_widgets()
-        # 默认选中虚幻工程
-        self.set_active_tool("ue_projects")
+        # 默认选中虚幻资产库
+        self.set_active_tool("ue_asset_library")
         
     
 
@@ -28,19 +28,23 @@ class Toolbar(ctk.CTkFrame):
         
         # 定义工具
         tools = [
-            ("虚幻工程", "ue_projects"),
             ("虚幻资产库", "ue_asset_library"),
+            ("虚幻工程", "ue_projects"),
         ]
         
         for tool_name, tool_id in tools:
+            # 使用默认参数修复lambda闭包问题
             btn = ctk.CTkButton(tools_frame, text=tool_name,
                                command=lambda tid=tool_id: self.on_tool_click(tid),
-                               height=40,
-                               font=ctk.CTkFont(size=13),
+                               height=45,
+                               font=ctk.CTkFont(size=14, weight="bold"),
                                anchor="w",
-                               fg_color=("#d0d0d0", "#2d2d2d"),  # 提高亮色主题下的对比度
-                               hover_color=("#b0b0b0", "#3d3d3d"),
-                               text_color=("#333333", "#ffffff"))
+                               fg_color="transparent",
+                               hover_color=("#e0e0e0", "#3d3d3d"),
+                               text_color=("#333333", "#ffffff"),
+                               border_width=2,
+                               border_color=("#e0e0e0", "#444444"),
+                               corner_radius=8)
             btn.pack(fill="x", pady=5)
             self.buttons[tool_id] = btn
         
@@ -52,25 +56,31 @@ class Toolbar(ctk.CTkFrame):
         
         # 设置按钮
         self.settings_btn = ctk.CTkButton(bottom_buttons_frame, text="设置",
-                                       command=lambda: self.on_tool_click("settings"),
-                                       height=40,
-                                       font=ctk.CTkFont(size=13),
+                                       command=lambda s=self: s.on_tool_click("settings"),
+                                       height=45,
+                                       font=ctk.CTkFont(size=14, weight="bold"),
                                        anchor="w",
-                                       fg_color=("#d0d0d0", "#2d2d2d"),
-                                       hover_color=("#b0b0b0", "#3d3d3d"),
-                                       text_color=("#333333", "#ffffff"))
+                                       fg_color="transparent",
+                                       hover_color=("#e0e0e0", "#3d3d3d"),
+                                       text_color=("#333333", "#ffffff"),
+                                       border_width=2,
+                                       border_color=("#e0e0e0", "#444444"),
+                                       corner_radius=8)
         self.settings_btn.pack(fill="x", pady=5)
         self.buttons["settings"] = self.settings_btn
         
         # 关于按钮
         self.about_btn = ctk.CTkButton(bottom_buttons_frame, text="关于",
-                                     command=lambda: self.on_tool_click("about"),
-                                     height=40,
-                                     font=ctk.CTkFont(size=13),
+                                     command=lambda s=self: s.on_tool_click("about"),
+                                     height=45,
+                                     font=ctk.CTkFont(size=14, weight="bold"),
                                      anchor="w",
-                                     fg_color=("#d0d0d0", "#2d2d2d"),
-                                     hover_color=("#b0b0b0", "#3d3d3d"),
-                                     text_color=("#333333", "#ffffff"))
+                                     fg_color="transparent",
+                                     hover_color=("#e0e0e0", "#3d3d3d"),
+                                     text_color=("#333333", "#ffffff"),
+                                     border_width=2,
+                                     border_color=("#e0e0e0", "#444444"),
+                                     corner_radius=8)
         self.about_btn.pack(fill="x", pady=5)
         self.buttons["about"] = self.about_btn
         

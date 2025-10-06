@@ -28,7 +28,7 @@ class UEAssetLibraryContent(ctk.CTkFrame):
             try:
                 print(f"🔍 后台加载资源数据...")
                 # 触发资源加载
-                resources = self.controller.asset_manager.get_resources()
+                resources = self.controller.asset_manager.resources
                 print(f"✅ 后台资源加载完成，找到 {len(resources)} 个资源")
                 
                 # 标记数据已加载
@@ -78,7 +78,7 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         # 搜索框
         self.search_entry = SearchEntry(search_frame, 
                                        placeholder_text="搜索资产...",
-                                       height=35,
+                                       height=38,
                                        command=self.on_search)
         self.search_entry.pack(side="left", fill="x", expand=True)
         
@@ -95,9 +95,12 @@ class UEAssetLibraryContent(ctk.CTkFrame):
                                             variable=self.category_var,
                                             values=self.controller.asset_manager.categories,
                                             command=self.on_category_change,
-                                            width=120,
-                                            height=35,
-                                            state="readonly")  # 设置为不可编辑
+                                            width=150,
+                                            height=38,
+                                            state="readonly",
+                                            font=ctk.CTkFont(size=13, weight="bold"),
+                                            dropdown_font=ctk.CTkFont(size=13),
+                                            corner_radius=8)  # 设置为不可编辑
         
         self.category_combo.pack(side="left")
         
@@ -107,29 +110,43 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         
         # 刷新按钮
         self.refresh_btn = ctk.CTkButton(ops_frame, 
-                                        text="🔄刷新数据",
+                                        text="🔄 刷新数据",
                                         command=lambda: self.refresh_content(force=True),
-                                        height=35,
-                                        width=60,
-                                        font=ctk.CTkFont(size=13))
+                                        height=38,
+                                        width=120,
+                                        font=ctk.CTkFont(size=13, weight="bold"),
+                                        fg_color=("#2196F3", "#14375e"),
+                                        hover_color=("#1976D2", "#1e5a8a"),
+                                        text_color=("white", "white"),
+                                        corner_radius=8)
         self.refresh_btn.pack(side="left", padx=5)
         
         # 管理分类按钮
         self.manage_category_btn = ctk.CTkButton(ops_frame, 
                                                 text="管理分类",
                                                 command=self.show_manage_categories_dialog,
-                                                height=35,
-                                                width=80,
-                                                font=ctk.CTkFont(size=13))
+                                                height=38,
+                                                width=100,
+                                                font=ctk.CTkFont(size=13, weight="bold"),
+                                                fg_color="transparent",
+                                                hover_color=("#e0e0e0", "#3d3d3d"),
+                                                text_color=("#333333", "#ffffff"),
+                                                border_width=2,
+                                                border_color=("#2196F3", "#4299e1"),
+                                                corner_radius=8)
         self.manage_category_btn.pack(side="left", padx=5)
         
         # 添加资产按钮
         self.add_btn = ctk.CTkButton(ops_frame, 
                                     text="+添加资产",
                                     command=self.import_assets,
-                                    height=35,
-                                    width=80,
-                                    font=ctk.CTkFont(size=13))
+                                    height=38,
+                                    width=100,
+                                    font=ctk.CTkFont(size=13, weight="bold"),
+                                    fg_color=("#4CAF50", "#2E7D32"),
+                                    hover_color=("#388E3C", "#1B5E20"),
+                                    text_color=("white", "white"),
+                                    corner_radius=8)
         self.add_btn.pack(side="left", padx=5)
         
         # 刷新状态提示
@@ -196,6 +213,10 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         # 更新分类下拉框 - 修复同步问题
         self.update_category_combo()
         
+        # 如果是强制刷新，执行路径扫描和智能添加
+        if force:
+            self._scan_and_add_resources()
+        
         # 获取过滤后的资源
         filtered_assets = self.controller.asset_manager.get_filtered_resources(
             self.controller.app_state.current_category, 
@@ -218,6 +239,251 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         
         # 显示刷新成功状态
         self.show_status("刷新成功", "success")
+    
+    def _scan_and_add_resources(self):
+        """扫描分类路径并智能添加新资源"""
+        current_category = self.controller.app_state.current_category
+        if current_category == "全部":
+            # 如果是"全部"分类，扫描所有分类的路径
+            categories = [cat for cat in self.controller.asset_manager.categories if cat != "全部"]
+            self._scan_multiple_categories_and_add_resources(categories)
+        else:
+            # 扫描当前分类的路径
+            self._scan_category_and_add_resources(current_category)
+    
+    def _scan_multiple_categories_and_add_resources(self, categories):
+        """扫描多个分类的路径并添加新资源，避免重复发现同一路径"""
+        # 全局已发现的路径集合，避免重复发现
+        globally_discovered_paths = set()
+        all_new_folders = []
+        
+        # 获取所有已有的资源路径
+        existing_paths = set()
+        for asset in self.controller.asset_manager.resources:
+            existing_paths.add(os.path.abspath(asset.get('path', '')))
+        
+        # 扫描每个分类的路径
+        for category in categories:
+            paths = self.controller.asset_manager.get_category_paths(category)
+            
+            # 扫描每个路径
+            for base_path in paths:
+                if os.path.exists(base_path):
+                    try:
+                        # 遍历路径下的所有直接子文件夹
+                        for item in os.listdir(base_path):
+                            item_path = os.path.join(base_path, item)
+                            if os.path.isdir(item_path):
+                                abs_path = os.path.abspath(item_path)
+                                # 如果该文件夹既不在已有的资源中，也没有被其他分类发现过，则为新发现
+                                if abs_path not in existing_paths and abs_path not in globally_discovered_paths:
+                                    globally_discovered_paths.add(abs_path)
+                                    all_new_folders.append({
+                                        'name': item,
+                                        'path': abs_path,
+                                        'category': category
+                                    })
+                    except Exception as e:
+                        import logging
+                        logging.error(f"扫描路径失败 {base_path}: {e}")
+        
+        if all_new_folders:
+            # 串行处理新发现的文件夹
+            self._process_new_folders_serially(all_new_folders, 0)
+    
+    def _scan_category_and_add_resources(self, category):
+        """扫描指定分类的路径并添加新资源"""
+        # 扫描分类路径
+        new_folders = self.controller.asset_manager.scan_category_paths(category)
+        
+        if new_folders:
+            # 串行处理新发现的文件夹
+            self._process_new_folders_serially(new_folders, 0)
+    
+    def _process_new_folders_serially(self, folders, index):
+        """串行处理新文件夹"""
+        if index >= len(folders):
+            # 所有文件夹处理完毕，刷新界面
+            self.refresh_content()
+            return
+        
+        folder = folders[index]
+        
+        # 创建添加资产对话框
+        self._show_add_asset_dialog(
+            folder['name'], 
+            folder['path'], 
+            folder['category'],
+            lambda: self._process_new_folders_serially(folders, index + 1)  # 处理下一个
+        )
+    
+    def _show_add_asset_dialog(self, name, path, category, on_complete):
+        """显示添加资产对话框"""
+        from tkinter import filedialog
+        import os
+        
+        # 创建对话框
+        dialog = ctk.CTkToplevel(self.controller.root)
+        dialog.title("添加新资产")
+        dialog.geometry("500x600")  # 进一步增加高度以确保按钮可见
+        dialog.resizable(False, False)
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        
+        # 居中显示
+        self._center_dialog_on_main_window(dialog)
+        
+        # 创建表单
+        form_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        form_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # 提示信息
+        info_label = ctk.CTkLabel(form_frame, 
+                                 text=f"发现新资源文件夹，是否添加到 {category} 分类？",
+                                 font=ctk.CTkFont(size=14, weight="bold"),
+                                 wraplength=400)
+        info_label.pack(pady=(0, 20))
+        
+        # 文件夹信息
+        folder_frame = ctk.CTkFrame(form_frame, fg_color=("gray90", "gray20"))
+        folder_frame.pack(fill="x", pady=(0, 20), padx=10)
+        
+        ctk.CTkLabel(folder_frame, text="📁 文件夹名称:", font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(10, 5))
+        ctk.CTkLabel(folder_frame, text=name, font=ctk.CTkFont(size=12)).pack(anchor="w", padx=20)
+        
+        ctk.CTkLabel(folder_frame, text="📂 文件夹路径:", font=ctk.CTkFont(size=12, weight="bold")).pack(anchor="w", padx=10, pady=(10, 5))
+        path_label = ctk.CTkLabel(folder_frame, text=path, font=ctk.CTkFont(size=12), wraplength=400)
+        path_label.pack(anchor="w", padx=20, pady=(0, 10))
+        
+        # 资源名称
+        ctk.CTkLabel(form_frame, text="资源名称:", 
+                    font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
+        name_var = ctk.StringVar(value=name)
+        name_entry = ctk.CTkEntry(form_frame, textvariable=name_var, 
+                                 height=35, font=ctk.CTkFont(size=13))
+        name_entry.pack(fill="x", pady=(0, 15))
+        
+        # 分类（固定为当前分类）
+        ctk.CTkLabel(form_frame, text="分类:", 
+                    font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
+        category_label = ctk.CTkLabel(form_frame, text=category, 
+                                     font=ctk.CTkFont(size=13),
+                                     fg_color=("gray80", "gray25"),
+                                     corner_radius=6,
+                                     height=35)
+        category_label.pack(fill="x", pady=(0, 15))
+        
+        # 封面图片
+        ctk.CTkLabel(form_frame, text="封面图片:", 
+                    font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
+        cover_var = ctk.StringVar()
+        
+        # 自动检测文件夹内的图片作为默认封面
+        default_cover = self._find_default_cover_image(path)
+        if default_cover:
+            cover_var.set(default_cover)
+        
+        cover_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        cover_frame.pack(fill="x", pady=(0, 15))
+        cover_entry = ctk.CTkEntry(cover_frame, textvariable=cover_var,
+                                  font=ctk.CTkFont(size=13))
+        cover_entry.pack(side="left", fill="x", expand=True)
+        
+        # 传递文件夹路径给浏览封面图片方法
+        ctk.CTkButton(cover_frame, text="选择", width=80,
+                     command=lambda: self.browse_cover_image_in_folder(cover_var, path)).pack(side="right", padx=(5, 0))
+        
+        # 是否创建README
+        readme_var = ctk.BooleanVar(value=False)
+        readme_check = ctk.CTkCheckBox(form_frame, text="创建README.md文档",
+                                      variable=readme_var,
+                                      font=ctk.CTkFont(size=13))
+        readme_check.pack(anchor="w", pady=15)
+        
+        # 按钮框架 - 使用 pack 到底部确保可见
+        btn_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        btn_frame.pack(fill="x", pady=10, side="bottom")
+        
+        def add_resource():
+            """添加资源"""
+            if self.controller.asset_manager.add_resource(
+                name_var.get(), path, category, cover_var.get(), readme_var.get()):
+                self.show_status(f"资源添加成功: {name_var.get()}", "success")
+                dialog.destroy()
+                # 自动刷新资产界面
+                self.refresh_content()
+                # 处理下一个文件夹
+                on_complete()
+            else:
+                self.show_status("资源添加失败", "error")
+        
+        def skip_resource():
+            """跳过资源"""
+            dialog.destroy()
+            # 自动刷新资产界面
+            self.refresh_content()
+            # 处理下一个文件夹
+            on_complete()
+        
+        ctk.CTkButton(btn_frame, text="添加", command=add_resource,
+                     width=80, height=35,
+                     font=ctk.CTkFont(size=13, weight="bold"),
+                     fg_color=("#4CAF50", "#2E7D32"),
+                     hover_color=("#388E3C", "#1B5E20"),
+                     text_color=("white", "white"),
+                     corner_radius=8).pack(side="left", padx=5)
+        
+        ctk.CTkButton(btn_frame, text="跳过", command=skip_resource,
+                     width=80, height=35,
+                     font=ctk.CTkFont(size=13, weight="bold"),
+                     fg_color=("#2196F3", "#14375e"),
+                     hover_color=("#1976D2", "#1e5a8a"),
+                     text_color=("white", "white"),
+                     corner_radius=8).pack(side="left", padx=5)
+        
+        ctk.CTkButton(btn_frame, text="取消", command=lambda: [dialog.destroy(), on_complete()],
+                     width=80, height=35,
+                     font=ctk.CTkFont(size=13, weight="bold"),
+                     fg_color=("#f44336", "#d32f2f"),
+                     hover_color=("#d32f2f", "#b71c1c"),
+                     text_color=("white", "white"),
+                     corner_radius=8).pack(side="right", padx=5)
+    
+    def browse_cover_image_in_folder(self, cover_var, folder_path):
+        """在指定文件夹中浏览封面图片"""
+        from tkinter import filedialog
+        file = filedialog.askopenfilename(
+            title="选择封面图片",
+            initialdir=folder_path,  # 设置初始目录为文件夹路径
+            filetypes=[("图片文件", "*.png *.jpg *.jpeg *.bmp *.gif *.tga *.psd")]
+        )
+        if file:
+            cover_var.set(file)
+    
+    def _find_default_cover_image(self, folder_path):
+        """在文件夹中查找默认封面图片"""
+        if not os.path.exists(folder_path):
+            return ""
+        
+        # 支持的图片格式
+        image_extensions = {'.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tga', '.psd'}
+        
+        try:
+            # 遍历文件夹中的文件
+            for item in os.listdir(folder_path):
+                item_path = os.path.join(folder_path, item)
+                if os.path.isfile(item_path):
+                    # 检查文件扩展名
+                    _, ext = os.path.splitext(item.lower())
+                    if ext in image_extensions:
+                        return item_path
+            
+            # 如果没有找到图片，返回空字符串
+            return ""
+        except Exception as e:
+            import logging
+            logging.error(f"查找默认封面图片失败: {e}")
+            return ""
     
     def _update_display_only(self):
         """仅更新显示，不重新加载数据"""
@@ -312,9 +578,13 @@ class UEAssetLibraryContent(ctk.CTkFrame):
             quick_add_btn = ctk.CTkButton(empty_container,
                                          text="📎 立即添加资产",
                                          command=self.import_assets,
-                                         height=40,
-                                         width=150,
-                                         font=ctk.CTkFont(size=13))
+                                         height=45,
+                                         width=180,
+                                         font=ctk.CTkFont(size=14, weight="bold"),
+                                         fg_color=("#4CAF50", "#2E7D32"),
+                                         hover_color=("#388E3C", "#1B5E20"),
+                                         text_color=("white", "white"),
+                                         corner_radius=8)
             quick_add_btn.pack(pady=10)
             return
         
@@ -325,13 +595,13 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         """显示管理分类对话框 - 修改了窗口大小"""
         dialog = ctk.CTkToplevel(self.controller.root)
         dialog.title("管理分类")
-        # 修改窗口大小：宽度x高度
-        dialog.geometry("600x500")  # 增大了窗口尺寸
+        dialog.geometry("600x450")  # 减小高度以保持界面美观
         dialog.transient(self.controller.root)
         dialog.grab_set()
+        dialog.resizable(False, False)  # 设置为不可由用户自由调整大小
         
-        # 居中显示
-        DialogUtils.center_window(dialog)
+        # 确保对话框始终位于主窗口的视觉中心
+        self._center_dialog_on_main_window(dialog)
         
         # 创建主框架
         main_frame = ctk.CTkFrame(dialog, fg_color="transparent")
@@ -385,9 +655,13 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         add_btn = ctk.CTkButton(add_input_frame, 
                                text="添加",
                                command=lambda: self.add_category_from_dialog(),
-                               height=35,
+                               height=38,
                                width=80,
-                               font=ctk.CTkFont(size=13))
+                               font=ctk.CTkFont(size=13, weight="bold"),
+                               fg_color=("#4CAF50", "#2E7D32"),
+                               hover_color=("#388E3C", "#1B5E20"),
+                               text_color=("white", "white"),
+                               corner_radius=8)
         add_btn.pack(side="right")
         
         # 按钮框架
@@ -397,9 +671,13 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         close_btn = ctk.CTkButton(btn_frame, 
                                  text="关闭",
                                  command=dialog.destroy,
-                                 height=35,
+                                 height=38,
                                  width=80,
-                                 font=ctk.CTkFont(size=13))
+                                 font=ctk.CTkFont(size=13, weight="bold"),
+                                 fg_color=("#f44336", "#d32f2f"),
+                                 hover_color=("#d32f2f", "#b71c1c"),
+                                 text_color=("white", "white"),
+                                 corner_radius=8)
         close_btn.pack(side="right")
 
     def create_category_item(self, parent, category):
@@ -419,20 +697,23 @@ class UEAssetLibraryContent(ctk.CTkFrame):
             delete_btn = ctk.CTkButton(item_frame,
                                       text="删除",
                                       state="disabled",  # 禁用按钮
-                                      width=60,
-                                      height=30,
-                                      font=ctk.CTkFont(size=12),
-                                      fg_color="gray")  # 灰色表示禁用
+                                      width=70,
+                                      height=32,
+                                      font=ctk.CTkFont(size=12, weight="bold"),
+                                      fg_color="#9E9E9E",
+                                      corner_radius=6)  # 灰色表示禁用
         else:
             # 其他分类可以删除
             delete_btn = ctk.CTkButton(item_frame,
                                       text="删除",
                                       command=lambda: self.delete_category(category, item_frame),
-                                      width=60,
-                                      height=30,
-                                      font=ctk.CTkFont(size=12),
-                                      fg_color="#d9534f",
-                                      hover_color="#c9302c")
+                                      width=70,
+                                      height=32,
+                                      font=ctk.CTkFont(size=12, weight="bold"),
+                                      fg_color="#f44336",
+                                      hover_color="#d32f2f",
+                                      text_color="white",
+                                      corner_radius=6)
         delete_btn.pack(side="right", padx=(5, 0))
         
         # 保存引用以便后续删除
@@ -483,10 +764,7 @@ class UEAssetLibraryContent(ctk.CTkFrame):
             
         if messagebox.askyesno("确认删除", f"确定要删除分类 '{category}' 吗？"):
             # 从数据管理器中删除
-            if category in self.controller.asset_manager.categories:
-                self.controller.asset_manager.categories.remove(category)
-                self.controller.asset_manager.save_data()
-                
+            if self.controller.asset_manager.remove_category(category):
                 # 从UI中删除
                 item_frame.destroy()
                 if category in self.category_widgets:
@@ -495,6 +773,8 @@ class UEAssetLibraryContent(ctk.CTkFrame):
                 # 刷新主界面 - 确保下拉框同步更新
                 self.update_category_combo()
                 self.show_status(f"已删除分类: {category}", "success")
+            else:
+                self.show_status("删除分类失败", "error")
 
     # 其他方法保持不变...
     def import_assets(self):
@@ -508,12 +788,13 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         """显示导入对话框"""
         dialog = ctk.CTkToplevel(self.controller.root)
         dialog.title("导入资源")
-        dialog.geometry("500x600")  # 增加高度以适应所有内容
+        dialog.geometry("500x550")  # 增加高度以适应内容并保持美观
+        dialog.resizable(False, False)  # 设置为不可由用户自由调整大小
         dialog.transient(self.controller.root)
         dialog.grab_set()
         
-        # 居中显示
-        DialogUtils.center_window(dialog)
+        # 确保对话框始终位于主窗口的视觉中心
+        self._center_dialog_on_main_window(dialog)
         
         # 创建表单
         form_frame = ctk.CTkFrame(dialog, fg_color="transparent")
@@ -540,39 +821,19 @@ class UEAssetLibraryContent(ctk.CTkFrame):
                     font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
         category_var = ctk.StringVar(value="默认")
         
-        # 添加自定义选项到分类列表
+        # 获取分类列表（排除'全部'分类）
         category_list = [cat for cat in self.controller.asset_manager.categories if cat != "全部"]
-        if "自定义..." not in category_list:
-            category_list.append("自定义...")
             
+        # 创建分类选择框，设置为可编辑状态，允许用户直接输入自定义分类
         category_combo = ctk.CTkComboBox(form_frame, variable=category_var, 
                                        values=category_list,
-                                       height=35, font=ctk.CTkFont(size=13))
-        category_combo.pack(fill="x", pady=(0, 15))
-        
-        # 自定义分类输入框（默认隐藏）
-        custom_category_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        custom_category_var = ctk.StringVar()
-        custom_category_entry = ctk.CTkEntry(custom_category_frame, 
-                                           textvariable=custom_category_var,
-                                           placeholder_text="输入新分类名称",
-                                           height=35, font=ctk.CTkFont(size=13),
-                                           state="readonly")  # 初始状态为不可编辑
-        
-        def on_category_change(choice):
-            if choice == "自定义...":
-                custom_category_frame.pack(fill="x", pady=(5, 15))
-                custom_category_entry.pack(fill="x")
-                custom_category_entry.configure(state="normal")  # 自定义时可编辑
-            else:
-                custom_category_frame.pack_forget()
-                custom_category_entry.configure(state="readonly")  # 已有分类时不可编辑
-        
-        category_combo.configure(command=on_category_change)
+                                       height=35, font=ctk.CTkFont(size=13),
+                                       state="normal")  # 设置为可编辑状态
+        category_combo.pack(fill="x", pady=(0, 5))
         
         # 封面图片
         ctk.CTkLabel(form_frame, text="封面图片:", 
-                    font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
+                    font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(10, 5))
         cover_var = ctk.StringVar()
         cover_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
         cover_frame.pack(fill="x", pady=(0, 15))
@@ -595,11 +856,21 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         btn_frame.pack(fill="x", pady=20, side="bottom")  # 固定在底部
         
         # 创建导入按钮
-        import_button = ctk.CTkButton(btn_frame, text="导入", width=80, height=35)
+        import_button = ctk.CTkButton(btn_frame, text="导入", width=80, height=38,
+                               font=ctk.CTkFont(size=13, weight="bold"),
+                               fg_color=("#4CAF50", "#2E7D32"),
+                               hover_color=("#388E3C", "#1B5E20"),
+                               text_color=("white", "white"),
+                               corner_radius=8)
         import_button.pack(side="left", padx=5)
         
         ctk.CTkButton(btn_frame, text="取消", command=dialog.destroy,
-                     width=80, height=35).pack(side="right", padx=5)
+                     width=80, height=38,
+                     font=ctk.CTkFont(size=13, weight="bold"),
+                     fg_color=("#f44336", "#d32f2f"),
+                     hover_color=("#d32f2f", "#b71c1c"),
+                     text_color=("white", "white"),
+                     corner_radius=8).pack(side="right", padx=5)
         
         # 实时检测资源名称是否重复
         def check_name_duplicate(*args):
@@ -620,7 +891,7 @@ class UEAssetLibraryContent(ctk.CTkFrame):
             else:
                 # 清除错误提示
                 name_error_label.configure(text="")
-                # 禁用导入按钮（名称为空时）
+                # 福导入按钮（名称为空时）
                 import_button.configure(state="disabled")
         
         # 绑定名称变量的变化事件
@@ -634,12 +905,15 @@ class UEAssetLibraryContent(ctk.CTkFrame):
             if name_error_label.cget("text"):
                 return  # 如果有错误，不执行导入操作
             
-            category = custom_category_var.get() if category_var.get() == "自定义..." else category_var.get()
+            # 获取分类
+            category = category_var.get().strip()
             if not category:
-                self.show_status("请选择或输入分类", "error")
+                self.show_status("请输入分类名称", "error")
                 return
-                
-            if category_var.get() == "自定义...":
+            
+            # 如果输入的分类不在现有分类列表中，则添加为新分类
+            if category not in self.controller.asset_manager.categories:
+                # 添加新分类
                 if not self.controller.asset_manager.add_category(category):
                     self.show_status("添加分类失败", "error")
                     return
@@ -694,6 +968,13 @@ class UEAssetLibraryContent(ctk.CTkFrame):
         card_margin = 15
         cards_per_row = 4  # 固定4列
         
+        # 先隐藏滚动区域，避免绘制痕迹
+        self.asset_scrollable.pack_forget()
+        
+        # 清空现有显示
+        for widget in self.asset_scrollable.winfo_children():
+            widget.destroy()
+        
         # 如果资产数量较少，添加一些视觉引导
         if len(assets) <= 4:
             # 添加提示信息
@@ -710,23 +991,40 @@ class UEAssetLibraryContent(ctk.CTkFrame):
                                      text_color=("gray60", "gray70"))
             info_label.pack(expand=True)
         
-        # 创建资产卡片
+        # 预创建所有卡片组件（不显示）
+        card_containers = []
+        cards = []
+        
+        # 创建资产卡片容器和卡片对象
         current_row = None
+        row_containers = []
+        
         for i, asset in enumerate(assets):
             if i % cards_per_row == 0:
                 current_row = ctk.CTkFrame(self.asset_scrollable, fg_color="transparent")
-                current_row.pack(fill="x", padx=10, pady=8)
+                row_containers.append(current_row)
             
             # 创建固定尺寸的卡片容器
             card_container = ctk.CTkFrame(current_row, 
                                         fg_color="transparent", 
                                         width=card_width, 
                                         height=card_height)
-            card_container.pack(side="left", padx=card_margin//2, pady=5)
             card_container.pack_propagate(False)  # 防止容器自适应内容大小
             
-            # 创建卡片
+            # 创建卡片（此时不添加到容器中）
             card = AssetCard(card_container, asset, self.controller, self.image_utils)
+            
+            card_containers.append((current_row, card_container, i % cards_per_row))
+            cards.append(card)
+        
+        # 批量布局所有组件
+        for i, (row, container, col_index) in enumerate(card_containers):
+            if col_index == 0:
+                row.pack(fill="x", padx=10, pady=8)
+            container.pack(side="left", padx=card_margin//2, pady=5)
+        
+        # 批量添加卡片到容器
+        for card, (_, container, _) in zip(cards, card_containers):
             card.pack(fill="both", expand=True)
         
         # 如果资产数量较少，在底部添加一些装饰性内容
@@ -755,5 +1053,31 @@ class UEAssetLibraryContent(ctk.CTkFrame):
                                        text_color=("gray60", "gray70"),
                                        justify="left")
             tips_content.pack(anchor="w", padx=15, pady=(0, 10))
+        
+        # 重新显示滚动区域
+        self.asset_scrollable.pack(fill="both", expand=True, padx=10, pady=10)
 
-    # center_window 方法已被 DialogUtils 替代，移除冗余代码
+    def _center_dialog_on_main_window(self, dialog):
+        """将对话框居中显示在主窗口上"""
+        # 等待窗口更新
+        dialog.update_idletasks()
+        
+        # 获取主窗口的位置和尺寸
+        main_window = self.controller.root
+        main_window.update_idletasks()
+        
+        main_x = main_window.winfo_x()
+        main_y = main_window.winfo_y()
+        main_width = main_window.winfo_width()
+        main_height = main_window.winfo_height()
+        
+        # 获取对话框的尺寸
+        dialog_width = dialog.winfo_width()
+        dialog_height = dialog.winfo_height()
+        
+        # 计算对话框应该出现的位置（主窗口的视觉中心）
+        dialog_x = main_x + (main_width - dialog_width) // 2
+        dialog_y = main_y + (main_height - dialog_height) // 2
+        
+        # 设置对话框位置
+        dialog.geometry(f"+{dialog_x}+{dialog_y}")
