@@ -1,7 +1,11 @@
 {
   "resources": [],
-  "categories": [
-    "默认"
-  ],
-  "category_paths": {}
+  "categories": ["默认"],
+  "category_paths": {},
+  "settings": {
+    "auto_refresh": true,
+    "show_preview": true,
+    "max_recent_files": 10
+  },
+  "version": "1.0.0"
 }

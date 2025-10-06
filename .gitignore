@@ -160,3 +160,8 @@ UE_Asset_Manager_Packaging/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# User-specific configuration files
+ue_assets.json
+ue_projects.json
+config/

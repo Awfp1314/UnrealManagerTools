@@ -1,4 +1,11 @@
 {
   "recent_projects": [],
-  "last_updated": ""
+  "last_updated": "",
+  "settings": {
+    "auto_scan": true,
+    "scan_paths": ["C:\\"],
+    "exclude_paths": ["C:\\Windows", "C:\\Program Files"],
+    "max_projects": 50
+  },
+  "version": "1.0.0"
 }

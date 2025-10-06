@@ -24,43 +24,45 @@ UE Asset Manager is a resource management tool designed specifically for Unreal 
 
 ```
 Ue_Asset_manger/
-├── README.md            # Project documentation
-├── main.py              # Main program entry
-├── requirements.txt     # Dependencies list
-├── 测试方案.md           # Test plan
-├── docs/                # Documents and reports
-│   └── *.md             # Various report files
-├── scripts/             # Script files
-│   ├── install_dependencies.py  # Install dependencies script
-│   └── install_psutil.py        # Install psutil script
-├── tests/               # Test files
-│   └── test_*.py        # Various test files
-├── models/              # Data models
-│   ├── __init__.py      # Package initialization
-│   ├── app_state.py     # Application state
-│   ├── asset_manager.py # Asset manager
-│   └── project_manager.py # Project manager
-├── views/               # View components
-│   ├── __init__.py      # Package initialization
-│   ├── main_window.py   # Main window
-│   ├── toolbar.py       # Toolbar
-│   └── content/         # Content pages
-│       ├── __init__.py           # Package initialization
-│       ├── base_content.py       # Base content manager
-│       ├── ue_asset_library.py   # Asset library page
-│       ├── ue_projects.py        # UE projects page
-│       ├── settings_content.py   # Settings page
-│       └── about_content.py      # About page
-├── widgets/             # Custom widgets
-│   ├── __init__.py      # Package initialization
-│   ├── asset_card.py    # Asset card component
-│   └── search_entry.py  # Search entry component
-└── utils/               # Utility functions
-    ├── __init__.py      # Package initialization
-    ├── dialog_utils.py  # Dialog utility class
-    ├── file_utils.py    # File utility class
-    ├── config_manager.py # Configuration manager
-    └── image_utils.py   # Image utility class
+├── README.md            # 项目说明文档
+├── main.py              # 主程序入口
+├── requirements.txt     # 依赖包列表
+├── ue_assets.json       # 资产数据文件（模板）
+├── ue_projects.json     # 项目数据文件（模板）
+├── 测试方案.md           # 测试方案
+├── docs/                # 文档和报告
+│   └── *.md             # 各种报告文件
+├── scripts/             # 脚本文件
+│   ├── install_dependencies.py  # 安装依赖脚本
+│   └── install_psutil.py        # 安装psutil脚本
+├── tests/               # 测试文件
+│   └── test_*.py        # 各种测试文件
+├── models/              # 数据模型
+│   ├── __init__.py      # 包初始化
+│   ├── app_state.py     # 应用状态
+│   ├── asset_manager.py # 资产管理器
+│   └── project_manager.py # 项目管理器
+├── views/               # 视图组件
+│   ├── __init__.py      # 包初始化
+│   ├── main_window.py   # 主窗口
+│   ├── toolbar.py       # 工具栏
+│   └── content/         # 内容页面
+│       ├── __init__.py           # 包初始化
+│       ├── base_content.py       # 基础内容管理器
+│       ├── ue_asset_library.py   # 资产库页面
+│       ├── ue_projects.py        # UE项目页面
+│       ├── settings_content.py   # 设置页面
+│       └── about_content.py      # 关于页面
+├── widgets/             # 自定义组件
+│   ├── __init__.py      # 包初始化
+│   ├── asset_card.py    # 资产卡片组件
+│   └── search_entry.py  # 搜索输入框组件
+└── utils/               # 工具函数
+    ├── __init__.py      # 包初始化
+    ├── dialog_utils.py  # 对话框工具类
+    ├── file_utils.py    # 文件工具类
+    ├── config_manager.py # 配置管理器
+    └── image_utils.py   # 图像工具类
 ```
 
 ## Installation & Usage
@@ -250,6 +252,8 @@ Ue_Asset_manger/
 ├── README.md            # 项目说明文档
 ├── main.py              # 主程序入口
 ├── requirements.txt     # 依赖包列表
+├── ue_assets.json       # 资产数据文件（模板）
+├── ue_projects.json     # 项目数据文件（模板）
 ├── 测试方案.md           # 测试方案
 ├── docs/                # 文档和报告
 │   └── *.md             # 各种报告文件
