@@ -106,6 +106,135 @@ class AssetCard(ctk.CTkFrame):
     def on_click(self, event):
         """处理左键点击"""
         self.controller.set_current_resource(self.asset)
+<<<<<<< Updated upstream
+=======
+        # 显示资产详情
+        self.show_asset_details()
+
+    def show_asset_details(self):
+        """显示资产详情界面"""
+        # 创建详情对话框
+        dialog = ctk.CTkToplevel(self.controller.root)
+        dialog.title("资产详情")
+        dialog.geometry("600x700")
+        dialog.resizable(False, False)
+        dialog.transient(self.controller.root)
+        dialog.grab_set()
+        
+        # 居中显示
+        self._center_dialog_on_main_window(dialog)
+        
+        # 创建主框架
+        main_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # 标题
+        title_label = ctk.CTkLabel(main_frame, text=self.asset.get('name', '未命名'),
+                                  font=ctk.CTkFont(size=20, weight="bold"))
+        title_label.pack(pady=(0, 20))
+        
+        # 缩略图
+        thumbnail_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        thumbnail_frame.pack(fill="x", pady=(0, 20))
+        
+        thumbnail_size = (300, 250)
+        thumbnail = self.image_utils.load_thumbnail(self.asset.get('cover'), thumbnail_size)
+        img_label = ctk.CTkLabel(thumbnail_frame, image=thumbnail, text="")
+        img_label.pack(expand=True)
+        
+        # 信息框架
+        info_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        info_frame.pack(fill="x", pady=(0, 20))
+        
+        # 创建信息网格
+        # 资源名称
+        ctk.CTkLabel(info_frame, text="资源名称:", font=ctk.CTkFont(size=14, weight="bold")).grid(
+            row=0, column=0, sticky="w", padx=(0, 10), pady=5)
+        ctk.CTkLabel(info_frame, text=self.asset.get('name', '未命名'), 
+                    font=ctk.CTkFont(size=14)).grid(
+            row=0, column=1, sticky="w", pady=5)
+        
+        # 分类
+        ctk.CTkLabel(info_frame, text="分类:", font=ctk.CTkFont(size=14, weight="bold")).grid(
+            row=1, column=0, sticky="w", padx=(0, 10), pady=5)
+        ctk.CTkLabel(info_frame, text=self.asset.get('category', '未分类'), 
+                    font=ctk.CTkFont(size=14)).grid(
+            row=1, column=1, sticky="w", pady=5)
+        
+        # 路径
+        ctk.CTkLabel(info_frame, text="路径:", font=ctk.CTkFont(size=14, weight="bold")).grid(
+            row=2, column=0, sticky="w", padx=(0, 10), pady=5)
+        path_text = self.asset.get('path', '无')
+        # 如果路径太长，截断并添加省略号
+        if len(path_text) > 50:
+            path_text = path_text[:47] + "..."
+        path_label = ctk.CTkLabel(info_frame, text=path_text, 
+                                 font=ctk.CTkFont(size=14))
+        path_label.grid(row=2, column=1, sticky="w", pady=5)
+        
+        # 添加日期
+        ctk.CTkLabel(info_frame, text="添加日期:", font=ctk.CTkFont(size=14, weight="bold")).grid(
+            row=3, column=0, sticky="w", padx=(0, 10), pady=5)
+        ctk.CTkLabel(info_frame, text=self.asset.get('date_added', '未知'), 
+                    font=ctk.CTkFont(size=14)).grid(
+            row=3, column=1, sticky="w", pady=5)
+        
+        # 文档
+        ctk.CTkLabel(info_frame, text="文档:", font=ctk.CTkFont(size=14, weight="bold")).grid(
+            row=4, column=0, sticky="w", padx=(0, 10), pady=5)
+        doc_text = "有" if self.asset.get('doc') else "无"
+        ctk.CTkLabel(info_frame, text=doc_text, 
+                    font=ctk.CTkFont(size=14)).grid(
+            row=4, column=1, sticky="w", pady=5)
+        
+        # 按钮框架
+        btn_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        btn_frame.pack(fill="x", pady=10)
+        
+        # 操作按钮
+        ctk.CTkButton(btn_frame, text="导入到工程", 
+                     command=lambda: [dialog.destroy(), self.import_to_ue_project()],
+                     height=35, font=ctk.CTkFont(size=13, weight="bold"),
+                     fg_color=("#9C27B0", "#7B1FA2"),
+                     hover_color=("#7B1FA2", "#6A1B9A")).pack(side="left", padx=5)
+        
+        ctk.CTkButton(btn_frame, text="打开文件夹", 
+                     command=lambda: self.open_folder_from_details(dialog),
+                     height=35, font=ctk.CTkFont(size=13, weight="bold"),
+                     fg_color=("#2196F3", "#14375e"),
+                     hover_color=("#1976D2", "#1e5a8a")).pack(side="left", padx=5)
+        
+        ctk.CTkButton(btn_frame, text="打开文档", 
+                     command=lambda: self.open_document_from_details(dialog),
+                     height=35, font=ctk.CTkFont(size=13, weight="bold"),
+                     fg_color=("#4CAF50", "#2E7D32"),
+                     hover_color=("#388E3C", "#1B5E20")).pack(side="left", padx=5)
+        
+        ctk.CTkButton(btn_frame, text="编辑资产", 
+                     command=lambda: [dialog.destroy(), self.edit_asset()],
+                     height=35, font=ctk.CTkFont(size=13, weight="bold"),
+                     fg_color=("#FF9800", "#EF6C00"),
+                     hover_color=("#F57C00", "#E65100")).pack(side="left", padx=5)
+        
+        ctk.CTkButton(btn_frame, text="关闭", 
+                     command=dialog.destroy,
+                     height=35, font=ctk.CTkFont(size=13, weight="bold"),
+                     fg_color=("#f44336", "#d32f2f"),
+                     hover_color=("#d32f2f", "#b71c1c")).pack(side="right", padx=5)
+        
+        # 配置网格列权重
+        info_frame.columnconfigure(1, weight=1)
+
+    def open_folder_from_details(self, dialog):
+        """从详情界面打开文件夹"""
+        dialog.destroy()
+        self.open_folder()
+
+    def open_document_from_details(self, dialog):
+        """从详情界面打开文档"""
+        dialog.destroy()
+        self.open_document()
+>>>>>>> Stashed changes
 
     def on_right_click(self, event):
         """处理右键点击 - 优化版本，支持鼠标移出自动关闭"""
