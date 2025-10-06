@@ -27,12 +27,15 @@ class UEProjectsContent(ctk.CTkFrame):
         def initial_search_thread():
             try:
                 print(f"🔍 后台搜索UE工程...")
-                projects = self.project_manager.search_ue_projects()
+                projects = self.project_manager.refresh_projects()
                 print(f"✅ 后台搜索完成，找到 {len(projects)} 个工程")
                 
                 # 标记数据已加载
                 self.is_data_loaded = True
                 self.last_refresh_time = datetime.now()
+                
+                # 在主线程中更新UI
+                self.after(0, self._update_display_only)
                 
             except Exception as e:
                 print(f"后台搜索出错: {e}")
@@ -192,8 +195,7 @@ class UEProjectsContent(ctk.CTkFrame):
             self.start_project_search()
         else:
             print(f"🔄 刷新UE工程数据")
-            self.update_recent_projects()
-            self.update_all_projects()
+            self.start_project_search()  # 强制重新搜索工程
             self.last_refresh_time = datetime.now()
     
     def _update_display_only(self):

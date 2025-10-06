@@ -421,8 +421,6 @@ class AssetCard(ctk.CTkFrame):
 
     def import_to_ue_project(self):
         """导入到虚幻引擎工程"""
-        import threading
-        
         source_path = self.asset.get('path', '')
         if not source_path or not os.path.exists(source_path):
             if hasattr(self.controller, 'show_status'):
@@ -435,6 +433,10 @@ class AssetCard(ctk.CTkFrame):
             if hasattr(self.controller, 'show_status'):
                 self.controller.show_status("未找到支持的压缩包(.zip/.7z)", "error")
             return
+        
+        # 显示加载提示
+        if hasattr(self.controller, 'show_status'):
+            self.controller.show_status("正在准备工程列表...", "info")
         
         # 显示UE工程选择对话框
         self.show_ue_project_selection_dialog(archive_files)
@@ -450,13 +452,39 @@ class AssetCard(ctk.CTkFrame):
     
     def show_ue_project_selection_dialog(self, archive_files):
         """显示UE工程选择对话框"""
-        # 从主窗口获取已加载的工程列表
+        # 优先使用已加载的工程列表，避免重新搜索导致卡顿
         projects = self.get_preloaded_projects()
+        
+        # 如果没有获取到工程列表，尝试手动搜索
+        if not projects:
+            print("未获取到预加载的工程列表，尝试手动搜索...")
+            try:
+                from models.project_manager import ProjectManager
+                project_manager = ProjectManager()
+                all_projects = project_manager.get_projects()  # 使用已有的工程列表
+                if not all_projects:  # 如果没有已有工程，才重新搜索
+                    all_projects = project_manager.refresh_projects()
+                projects = [{
+                    'name': project['name'],
+                    'path': project['path'],
+                    'dir': project['dir']
+                } for project in all_projects]
+            except Exception as e:
+                print(f"手动搜索工程失败: {e}")
+        
+        # 获取当前运行的虚幻引擎进程
+        running_processes = []
+        try:
+            from models.project_manager import ProjectManager
+            project_manager = ProjectManager()
+            running_processes = project_manager.get_running_ue_processes()
+        except Exception as e:
+            print(f"获取运行进程失败: {e}")
         
         # 创建工程选择对话框
         selection_dialog = ctk.CTkToplevel(self.controller.root)
         selection_dialog.title("选择虚幻引擎工程")
-        selection_dialog.geometry("800x600")  # 减小尺寸，确保按钮有足够空间
+        selection_dialog.geometry("900x700")  # 增加尺寸以容纳更多信息
         selection_dialog.transient(self.controller.root)
         selection_dialog.grab_set()
         selection_dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
@@ -474,37 +502,77 @@ class AssetCard(ctk.CTkFrame):
         title_label.pack(pady=(0, 15))
         
         # 状态显示
-        status_label = ctk.CTkLabel(main_frame, text=f"已找到 {len(projects)} 个工程",
+        status_text = f"已找到 {len(projects)} 个工程"
+        if running_processes:
+            status_text += f"，当前运行 {len(running_processes)} 个UE进程"
+        status_color = ("green", "green") if projects else ("orange", "orange")
+        status_label = ctk.CTkLabel(main_frame, text=status_text,
                                    font=ctk.CTkFont(size=12),
-                                   text_color=("green", "green"))
+                                   text_color=status_color)
         status_label.pack(pady=(0, 15))
         
-        # 工程列表框架 - 给列表更多空间
-        projects_frame = ctk.CTkFrame(main_frame)
-        projects_frame.pack(fill="both", expand=True, pady=(0, 20))  # 增加底部间距
+        # 创建标签页控件
+        tabview = ctk.CTkTabview(main_frame)
+        tabview.pack(fill="both", expand=True, pady=(0, 10))
+        
+        # 添加标签页
+        all_projects_tab = tabview.add("所有工程")
+        if running_processes:
+            running_tab = tabview.add("运行中的工程")
+        
+        # 所有工程标签页内容
+        # 工程列表框架
+        projects_frame = ctk.CTkFrame(all_projects_tab)
+        projects_frame.pack(fill="both", expand=True)
         
         # 列表标题
         list_title = ctk.CTkLabel(projects_frame, text="可用的UE工程:",
                                  font=ctk.CTkFont(size=13, weight="bold"))
         list_title.pack(anchor="w", padx=15, pady=(15, 5))
         
-        # 滚动框架 - 确保有足够高度
-        scrollable_frame = ctk.CTkScrollableFrame(projects_frame, height=400)  # 进一步增加高度
-        scrollable_frame.pack(fill="both", expand=True, padx=15, pady=(0, 20))  # 增加底部间距
+        # 滚动框架 - 确保有足够高度但不占用所有空间
+        scrollable_frame = ctk.CTkScrollableFrame(projects_frame, height=400)  # 调整高度
+        scrollable_frame.pack(fill="both", expand=True, padx=15, pady=(0, 10))  # 不扩展，保留空间给按钮
         
         # 显示工程列表
-        self.display_found_projects_simple(scrollable_frame, projects, archive_files)
+        if projects:
+            self.display_found_projects_simple(scrollable_frame, projects, archive_files)
+        else:
+            # 显示提示信息
+            no_projects_label = ctk.CTkLabel(scrollable_frame, 
+                                           text="未找到UE工程文件\n请确保已添加工程或手动选择工程文件",
+                                           font=ctk.CTkFont(size=12),
+                                           text_color=("gray50", "gray50"))
+            no_projects_label.pack(pady=50)
+        
+        # 运行中的工程标签页内容（如果有的话）
+        if running_processes:
+            # 运行中工程列表框架
+            running_frame = ctk.CTkFrame(running_tab)
+            running_frame.pack(fill="both", expand=True)
+            
+            # 列表标题
+            running_title = ctk.CTkLabel(running_frame, text="当前运行的UE工程:",
+                                       font=ctk.CTkFont(size=13, weight="bold"))
+            running_title.pack(anchor="w", padx=15, pady=(15, 5))
+            
+            # 滚动框架
+            running_scrollable = ctk.CTkScrollableFrame(running_frame, height=400)
+            running_scrollable.pack(fill="both", expand=True, padx=15, pady=(0, 10))
+            
+            # 显示运行中的工程
+            self.display_running_processes(running_scrollable, running_processes, archive_files)
         
         # 按钮框架 - 确保有足够空间且不收缩
-        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent", height=60)  # 增加高度确保按钮可见
-        button_frame.pack(fill="x", pady=(10, 0))
+        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent", height=80)  # 调整高度
+        button_frame.pack(fill="x", pady=(10, 0), side="bottom")
         button_frame.pack_propagate(False)  # 防止框架收缩
         
         # 手动选择按钮 - 设置明确的尺寸
         manual_button = ctk.CTkButton(button_frame, text="手动选择文件", 
                                      width=120, height=35,
                                      command=lambda: self.manual_select_project(selection_dialog, archive_files))
-        manual_button.pack(side="left", padx=(0, 10), pady=(10, 5))  # 调整padding确保可见
+        manual_button.pack(side="left", padx=(0, 15), pady=15)
         
         # 取消按钮 - 设置明确的尺寸
         cancel_button = ctk.CTkButton(button_frame, text="取消",
@@ -512,20 +580,77 @@ class AssetCard(ctk.CTkFrame):
                                      command=selection_dialog.destroy,
                                      fg_color="transparent",
                                      border_width=1)
-        cancel_button.pack(side="right", padx=(10, 0), pady=(10, 5))  # 调整padding确保可见
+        cancel_button.pack(side="right", padx=(0, 15), pady=15)
         
         # 存储找到的工程
         self.found_projects = projects
         self.selection_dialog = selection_dialog
+    
+    def display_running_processes(self, parent, running_processes, archive_files):
+        """显示运行中的进程列表"""
+        if not running_processes:
+            no_processes_label = ctk.CTkLabel(parent, 
+                                            text="当前没有运行中的虚幻引擎工程",
+                                            font=ctk.CTkFont(size=12),
+                                            text_color=("gray50", "gray50"))
+            no_processes_label.pack(pady=50)
+            return
+        
+        # 显示每个运行中的进程
+        for process in running_processes:
+            process_frame = ctk.CTkFrame(parent, height=100)  # 设置固定高度
+            process_frame.pack(fill="x", padx=5, pady=3)
+            process_frame.pack_propagate(False)  # 防止框架收缩
+            
+            # 进程信息
+            info_frame = ctk.CTkFrame(process_frame, fg_color="transparent")
+            info_frame.pack(fill="both", expand=True, padx=12, pady=10)
+            
+            # 进程名称
+            name_label = ctk.CTkLabel(info_frame, text=process['project_name'],
+                                     font=ctk.CTkFont(size=13, weight="bold"))
+            name_label.pack(anchor="w")
+            
+            # 进程路径
+            path_label = ctk.CTkLabel(info_frame, text=process['project_path'] or "未知路径",
+                                     font=ctk.CTkFont(size=10),
+                                     text_color=("gray50", "gray50"))
+            path_label.pack(anchor="w", pady=(2, 8))
+            
+            # 进程ID
+            pid_label = ctk.CTkLabel(info_frame, text=f"进程ID: {process['pid']}",
+                                    font=ctk.CTkFont(size=9),
+                                    text_color=("gray60", "gray60"))
+            pid_label.pack(anchor="w", pady=(0, 5))
+            
+            # 选择按钮 - 在右上角固定位置
+            select_button = ctk.CTkButton(info_frame, text="选择此工程",
+                                         width=100, height=32,
+                                         command=lambda p=process: self.select_running_process(p, archive_files))
+            select_button.place(relx=1.0, rely=0.0, anchor="ne")
+    
+    def select_running_process(self, process, archive_files):
+        """选择运行中的进程"""
+        # 从进程信息创建工程对象
+        project = {
+            'name': process['project_name'],
+            'path': process['project_path'],
+            'dir': os.path.dirname(process['project_path']) if process['project_path'] else ''
+        }
+        
+        # 关闭对话框并处理选择
+        self.selection_dialog.destroy()
+        self.process_selected_project(project, archive_files)
     
     def get_preloaded_projects(self):
         """从主窗口获取已加载的工程列表"""
         try:
             # 尝试从内容管理器中获取虚幻工程组件
             content_manager = self.controller.content_manager
-            if hasattr(content_manager, 'content_frames') and 'ue_projects' in content_manager.content_frames:
-                ue_projects_content = content_manager.content_frames['ue_projects']
+            if hasattr(content_manager, 'pages') and 'ue_projects' in content_manager.pages:
+                ue_projects_content = content_manager.pages['ue_projects']
                 if hasattr(ue_projects_content, 'project_manager'):
+                    # 使用已有的工程列表，避免强制刷新导致卡顿
                     projects = ue_projects_content.project_manager.get_projects()
                     # 转换为对话框需要的格式
                     return [{
@@ -663,6 +788,8 @@ class AssetCard(ctk.CTkFrame):
         
         # 显示导入进度对话框
         self.show_import_progress_dialog(archive_files, content_dir, project['name'])
+    
+    def find_archive_files(self, folder_path):
         """查找文件夹中的压缩包"""
         archive_files = []
         for root, dirs, files in os.walk(folder_path):
@@ -760,6 +887,8 @@ class AssetCard(ctk.CTkFrame):
                             try:
                                 if not self.import_cancelled:
                                     current_file_label.configure(text=f"正在导入: {f}")
+                                    # 强制更新UI
+                                    progress_dialog.update_idletasks()
                             except:
                                 pass
                         return update
@@ -883,138 +1012,7 @@ class AssetCard(ctk.CTkFrame):
             except:
                 pass
         dialog.after(0, update)
-    
-    def import_single_archive_to_content(self, archive_path, content_dir, progress_callback=None):
-        """导入单个压缩包到UE工程的Content目录"""
-        filename = os.path.basename(archive_path)
-        name_without_ext = os.path.splitext(filename)[0]
-        
-        # 创建临时解压目录
-        import tempfile
-        temp_extract_path = tempfile.mkdtemp(prefix=f"ue_import_{name_without_ext}_")
-        final_import_path = os.path.join(content_dir, name_without_ext)
-        
-        # 如果目标目录已存在，添加数字后缀
-        counter = 1
-        original_final_path = final_import_path
-        while os.path.exists(final_import_path):
-            final_import_path = f"{original_final_path}_{counter}"
-            counter += 1
-        
-        try:
-            print(f"开始导入 {filename} 到 {final_import_path}")
-            
-            # 执行解压到临时目录
-            success = self._extract_archive_to_temp(archive_path, temp_extract_path, progress_callback)
-            
-            if success and not self.import_cancelled:
-                # 优化目录结构并导入到Content目录
-                self._optimize_and_import_to_content(temp_extract_path, final_import_path)
-                print(f"导入完成: {final_import_path}")
-                return True
-            else:
-                # 清理临时目录
-                self._cleanup_directory(temp_extract_path)
-                return False
-                
-        except Exception as e:
-            print(f"导入 {archive_path} 失败: {e}")
-            # 清理临时目录
-            self._cleanup_directory(temp_extract_path)
-            return False
-    
-    def _optimize_and_import_to_content(self, temp_path, final_path):
-        """优化目录结构并导入到Content目录"""
-        import shutil
-        
-        try:
-            # 递归优化，直到找到真正的内容
-            current_path = temp_path
-            
-            # 获取最终目录的名称（不包括路径）
-            archive_name = os.path.basename(final_path)
-            
-            # 持续检查和优化，直到无法再优化
-            max_iterations = 10  # 防止无限循环
-            iteration = 0
-            
-            while iteration < max_iterations:
-                temp_contents = os.listdir(current_path)
-                
-                if not temp_contents:
-                    print("目录为空，跳过优化")
-                    break
-                
-                # 情况1：只有一个子目录，且该目录包含实际内容
-                if len(temp_contents) == 1:
-                    single_item = temp_contents[0]
-                    single_item_path = os.path.join(current_path, single_item)
-                    
-                    if os.path.isdir(single_item_path) and self._contains_meaningful_content(single_item_path):
-                        print(f"发现单一子目录 '{single_item}'，检查是否需要优化")
-                        
-                        # 检查是否是同名嵌套或可以优化的目录
-                        if single_item == archive_name or self._should_flatten_directory(single_item):
-                            print(f"优化目录 '{single_item}'，继续检查")
-                            # 更新当前路径为子目录，继续检查
-                            current_path = single_item_path
-                            iteration += 1
-                            continue
-                        else:
-                            # 不同名的单一子目录，也可以优化
-                            print(f"发现单一子目录 '{single_item}'，提升内容到根级别")
-                            current_path = single_item_path
-                            iteration += 1
-                            continue
-                
-                # 情况2：检查是否存在与压缩包同名的目录
-                found_same_name = False
-                for item in temp_contents:
-                    item_path = os.path.join(current_path, item)
-                    if os.path.isdir(item_path) and item == archive_name:
-                        print(f"发现同名目录 '{item}'，继续优化")
-                        current_path = item_path
-                        found_same_name = True
-                        iteration += 1
-                        break
-                
-                if found_same_name:
-                    continue
-                
-                # 无法再优化，退出循环
-                break
-            
-            # 移动最终的内容到Content目录
-            if current_path != temp_path:
-                print(f"优化后的路径: {current_path}")
-                shutil.move(current_path, final_path)
-                # 清理原始临时目录
-                if os.path.exists(temp_path) and temp_path != current_path:
-                    self._cleanup_directory(temp_path)
-            else:
-                # 无需优化，直接移动
-                print("使用默认结构，移动所有内容")
-                shutil.move(temp_path, final_path)
-            
-        except Exception as e:
-            print(f"优化并导入目录结构时出错: {e}")
-            # 发生错误时，尝试简单移动
-            try:
-                if os.path.exists(temp_path):
-                    shutil.move(temp_path, final_path)
-            except:
-                print("简单移动也失败，保留临时目录")
-    
-    def _should_flatten_directory(self, directory_name):
-        """判断是否应该扁平化目录（对UE资产的特殊处理）"""
-        # 常见的UE资产包装目录名称，这些应该被扁平化
-        flatten_names = [
-            'source', 'Source', 'content', 'Content', 'assets', 'Assets',
-            'materials', 'Materials', 'textures', 'Textures', 'meshes', 'Meshes',
-            'maps', 'Maps', 'blueprints', 'Blueprints'
-        ]
-        return directory_name in flatten_names
-    
+
     def cancel_import(self, dialog):
         """取消导入"""
         print("用户取消导入操作")
@@ -1044,215 +1042,303 @@ class AssetCard(ctk.CTkFrame):
         else:
             messagebox.showerror("错误", error_msg)
     
-    def extract_single_archive(self, archive_path, dest_dir, progress_callback=None):
-        """解压单个压缩包"""
+    def import_single_archive_to_content(self, archive_path, content_dir, progress_callback=None):
+        """导入单个压缩包到UE工程的Content目录 - 完全模拟手动操作"""
+        import os
+        import tempfile
+        import shutil
+        import time
+        import subprocess
+        
         filename = os.path.basename(archive_path)
         name_without_ext = os.path.splitext(filename)[0]
         
-        # 创建临时解压目录
-        temp_extract_path = os.path.join(dest_dir, f"temp_{name_without_ext}")
-        final_extract_path = os.path.join(dest_dir, name_without_ext)
+        # 模拟手动操作：在桌面创建临时目录（这里使用系统临时目录模拟桌面）
+        temp_desktop_path = tempfile.mkdtemp(prefix=f"ue_manual_import_{name_without_ext}_")
+        print(f"模拟桌面路径: {temp_desktop_path}")
         
-        # 如果最终目标目录已存在，添加数字后缀
+        # 目标导入路径
+        final_import_path = os.path.join(content_dir, name_without_ext)
+        
+        # 如果目标目录已存在，添加数字后缀（模拟手动操作中重命名文件夹）
         counter = 1
-        original_final_path = final_extract_path
-        while os.path.exists(final_extract_path):
-            final_extract_path = f"{original_final_path}_{counter}"
+        original_final_path = final_import_path
+        while os.path.exists(final_import_path):
+            final_import_path = f"{original_final_path}_{counter}"
             counter += 1
         
         try:
-            # 确保临时目录存在
-            os.makedirs(temp_extract_path, exist_ok=True)
+            print(f"开始模拟手动导入 {filename} 到 {final_import_path}")
             
-            # 执行解压
-            success = self._extract_archive_to_temp(archive_path, temp_extract_path, progress_callback)
+            # 步骤1: 模拟手动解压 - 将压缩包解压到临时目录（模拟桌面）
+            print("步骤1: 模拟手动解压到桌面")
+            if archive_path.lower().endswith('.zip'):
+                import zipfile
+                with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+                    zip_ref.extractall(temp_desktop_path)
+            elif archive_path.lower().endswith('.7z'):
+                # 尝试多种方法解压7z文件
+                success = False
+                
+                # 方法1: 尝试使用系统7z命令，添加-mtc=off参数
+                try:
+                    cmd = ['7z', 'x', archive_path, f'-o{temp_desktop_path}', '-y', '-mtc=off']
+                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                    if result.returncode == 0:
+                        success = True
+                        print("使用系统7z命令解压成功")
+                    else:
+                        print(f"7z命令执行失败: {result.stderr}")
+                except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+                    print(f"7z命令不可用或超时: {e}")
+                
+                # 方法2: 如果系统7z命令不可用，尝试使用py7zr库
+                if not success:
+                    try:
+                        import py7zr
+                        # 检查py7zr版本和API
+                        if hasattr(py7zr, 'SevenZipFile'):
+                            archive = py7zr.SevenZipFile(archive_path, mode='r')
+                            archive.extractall(path=temp_desktop_path)
+                            archive.close()
+                            success = True
+                            print("使用py7zr库解压成功")
+                        else:
+                            print("py7zr库版本不兼容")
+                    except Exception as py7zr_error:
+                        print(f"py7zr解压失败: {py7zr_error}")
+                
+                # 方法3: 如果以上方法都失败，尝试使用系统tar命令（某些7z文件可能支持）
+                if not success:
+                    try:
+                        cmd = ['tar', '-xf', archive_path, '-C', temp_desktop_path]
+                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+                        if result.returncode == 0:
+                            success = True
+                            print("使用tar命令解压成功")
+                        else:
+                            print(f"tar命令执行失败: {result.stderr}")
+                    except (FileNotFoundError, subprocess.TimeoutExpired) as e:
+                        print(f"tar命令不可用或超时: {e}")
+                
+                # 如果所有方法都失败，显示友好的错误提示
+                if not success:
+                    error_msg = "无法解压7z文件，未找到可用的解压工具。\n请安装7-Zip软件（https://www.7-zip.org/）或确保py7zr库正确安装。"
+                    print(error_msg)
+                    raise Exception(error_msg)
             
-            if success and not self.extraction_cancelled:
-                # 优化目录结构
-                self._optimize_directory_structure(temp_extract_path, final_extract_path)
-                print(f"解压并优化完成: {final_extract_path}")
-                return True
-            else:
-                # 清理临时目录
-                self._cleanup_directory(temp_extract_path)
+            if self.import_cancelled:
+                self._cleanup_directory(temp_desktop_path)
                 return False
-                
-        except Exception as e:
-            print(f"解压 {archive_path} 失败: {e}")
-            # 清理临时目录
-            self._cleanup_directory(temp_extract_path)
-            return False
-    
-    def _extract_archive_to_temp(self, archive_path, temp_extract_path, progress_callback=None):
-        """将压缩包解压到临时目录"""
-        if archive_path.lower().endswith('.zip'):
-            print(f"正在解压 ZIP 文件: {archive_path} 到 {temp_extract_path}")
-            import zipfile
             
-            with zipfile.ZipFile(archive_path, 'r') as zip_ref:
-                file_list = zip_ref.namelist()
-                total_files = len(file_list)
-                
-                for i, file_info in enumerate(file_list):
-                    if hasattr(self, 'import_cancelled') and self.import_cancelled:
-                        return False
-                    if hasattr(self, 'extraction_cancelled') and self.extraction_cancelled:
+            print(f"解压完成，内容在: {temp_desktop_path}")
+            
+            # 步骤2: 模拟手动复制 - 将解压后的内容复制到Content目录
+            print("步骤2: 模拟手动复制到Content目录")
+            
+            # 创建目标目录
+            os.makedirs(final_import_path, exist_ok=True)
+            
+            # 获取解压目录中的所有项目
+            items = os.listdir(temp_desktop_path)
+            total_items = len(items)
+            
+            # 检查是否只有一个文件夹且该文件夹包含实际内容（避免双重嵌套）
+            if len(items) == 1:
+                single_item = items[0]
+                single_item_path = os.path.join(temp_desktop_path, single_item)
+                if os.path.isdir(single_item_path):
+                    # 检查该文件夹是否包含有意义的内容
+                    inner_items = os.listdir(single_item_path)
+                    if inner_items:
+                        print(f"检测到嵌套文件夹 '{single_item}'，直接复制其内容")
+                        # 直接复制嵌套文件夹中的内容，避免双重嵌套
+                        for i, inner_item in enumerate(inner_items):
+                            if self.import_cancelled:
+                                self._cleanup_directory(temp_desktop_path)
+                                return False
+                                
+                            src_path = os.path.join(single_item_path, inner_item)
+                            dst_path = os.path.join(final_import_path, inner_item)
+                            
+                            print(f"  复制 {i+1}/{len(inner_items)}: {inner_item}")
+                            
+                            # 模拟手动复制过程
+                            if os.path.isdir(src_path):
+                                shutil.copytree(src_path, dst_path)
+                            else:
+                                shutil.copy2(src_path, dst_path)
+                            
+                            # 模拟手动操作的延迟
+                            time.sleep(0.05)
+                            
+                            # 更新进度
+                            if progress_callback:
+                                progress_callback((i + 1) / len(inner_items))
+                    else:
+                        # 空文件夹，按正常流程处理
+                        print(f"检测到空文件夹 '{single_item}'，按正常流程处理")
+                        for i, item in enumerate(items):
+                            if self.import_cancelled:
+                                self._cleanup_directory(temp_desktop_path)
+                                return False
+                                
+                            src_path = os.path.join(temp_desktop_path, item)
+                            dst_path = os.path.join(final_import_path, item)
+                            
+                            print(f"  复制 {i+1}/{total_items}: {item}")
+                            
+                            # 模拟手动复制过程
+                            if os.path.isdir(src_path):
+                                shutil.copytree(src_path, dst_path)
+                            else:
+                                shutil.copy2(src_path, dst_path)
+                            
+                            # 模拟手动操作的延迟
+                            time.sleep(0.05)
+                            
+                            # 更新进度
+                            if progress_callback:
+                                progress_callback((i + 1) / total_items)
+                else:
+                    # 单个项目是文件，按正常流程处理
+                    print("检测到单个文件，按正常流程处理")
+                    for i, item in enumerate(items):
+                        if self.import_cancelled:
+                            self._cleanup_directory(temp_desktop_path)
+                            return False
+                            
+                        src_path = os.path.join(temp_desktop_path, item)
+                        dst_path = os.path.join(final_import_path, item)
+                        
+                        print(f"  复制 {i+1}/{total_items}: {item}")
+                        
+                        # 模拟手动复制过程
+                        if os.path.isdir(src_path):
+                            shutil.copytree(src_path, dst_path)
+                        else:
+                            shutil.copy2(src_path, dst_path)
+                        
+                        # 模拟手动操作的延迟
+                        time.sleep(0.05)
+                        
+                        # 更新进度
+                        if progress_callback:
+                            progress_callback((i + 1) / total_items)
+            else:
+                # 多个项目，按正常流程处理
+                print("检测到多个项目，按正常流程处理")
+                for i, item in enumerate(items):
+                    if self.import_cancelled:
+                        self._cleanup_directory(temp_desktop_path)
                         return False
                         
-                    # 解压单个文件
-                    zip_ref.extract(file_info, temp_extract_path)
+                    src_path = os.path.join(temp_desktop_path, item)
+                    dst_path = os.path.join(final_import_path, item)
+                    
+                    print(f"  复制 {i+1}/{total_items}: {item}")
+                    
+                    # 模拟手动复制过程
+                    if os.path.isdir(src_path):
+                        shutil.copytree(src_path, dst_path)
+                    else:
+                        shutil.copy2(src_path, dst_path)
+                    
+                    # 模拟手动操作的延迟
+                    time.sleep(0.05)
                     
                     # 更新进度
-                    if progress_callback and total_files > 0:
-                        progress = (i + 1) / total_files
-                        progress_callback(progress)
-                        
-                        # 对于小文件，添加微小延迟让进度更可见
-                        if total_files > 10 and i % 10 == 0:
-                            import time
-                            time.sleep(0.01)  # 10ms延迟
-                        
+                    if progress_callback:
+                        progress_callback((i + 1) / total_items)
+            
+            print("复制完成")
+            
+            # 步骤3: 模拟手动清理 - 删除桌面的临时文件（临时目录）
+            print("步骤3: 模拟清理桌面临时文件")
+            self._cleanup_directory(temp_desktop_path)
+            
+            # 步骤4: 模拟手动刷新UE - 创建临时文件触发UE文件系统监控
+            print("步骤4: 模拟手动刷新UE")
+            self._trigger_ue_refresh(content_dir)
+            
+            print(f"手动导入完成: {final_import_path}")
             return True
             
-        elif archive_path.lower().endswith('.7z'):
-            print(f"正在解压 7Z 文件: {archive_path} 到 {temp_extract_path}")
-            try:
-                import py7zr
-                # 使用新的py7zr API
-                archive = py7zr.SevenZipFile(archive_path, mode='r')
-                try:
-                    file_list = archive.getnames()
-                    total_files = len(file_list)
-                    
-                    # py7zr不支持单文件解压，但可以模拟进度
-                    if progress_callback:
-                        # 更加细致的进度模拟，使用更多步骤
-                        for i in range(20):  # 增加到20步
-                            if hasattr(self, 'import_cancelled') and self.import_cancelled:
-                                return False
-                            if hasattr(self, 'extraction_cancelled') and self.extraction_cancelled:
-                                return False
-                            progress_callback(0.05 + (i * 0.045))  # 0.05到0.95
-                            import time
-                            time.sleep(0.02)  # 20ms延迟让进度更可见
-                        
-                    archive.extractall(path=temp_extract_path)
-                    
-                    if progress_callback:
-                        progress_callback(1.0)  # 完成
-                        
-                finally:
-                    archive.close()
-                    
-                return True
-                
-            except ImportError:
-                print("py7zr 库未安装，尝试使用系统命令")
-                return self.extract_7z_with_system_command(archive_path, temp_extract_path, progress_callback)
-            except Exception as e:
-                print(f"py7zr 解压失败: {e}，尝试使用系统命令")
-                return self.extract_7z_with_system_command(archive_path, temp_extract_path, progress_callback)
-        
-        print(f"不支持的文件格式: {archive_path}")
-        return False
-    
-    def _optimize_directory_structure(self, temp_path, final_path):
-        """优化目录结构，去除多余的嵌套目录"""
-        import shutil
-        
-        try:
-            # 递归优化，直到找到真正的内容
-            current_path = temp_path
-            
-            # 获取最终目录的名称（不包括路径）
-            archive_name = os.path.basename(final_path)
-            
-            # 持续检查和优化，直到无法再优化
-            max_iterations = 10  # 防止无限循环
-            iteration = 0
-            
-            while iteration < max_iterations:
-                temp_contents = os.listdir(current_path)
-                
-                if not temp_contents:
-                    print("目录为空，跳过优化")
-                    break
-                
-                # 情况1：只有一个子目录，且该目录包含实际内容
-                if len(temp_contents) == 1:
-                    single_item = temp_contents[0]
-                    single_item_path = os.path.join(current_path, single_item)
-                    
-                    if os.path.isdir(single_item_path) and self._contains_meaningful_content(single_item_path):
-                        print(f"发现单一子目录 '{single_item}'，检查是否需要优化")
-                        
-                        # 检查是否是同名嵌套
-                        if single_item == archive_name:
-                            print(f"发现同名嵌套 '{single_item}'，继续优化")
-                            # 更新当前路径为子目录，继续检查
-                            current_path = single_item_path
-                            iteration += 1
-                            continue
-                        else:
-                            # 不同名的单一子目录，也可以优化
-                            print(f"发现单一子目录 '{single_item}'，提升内容到根级别")
-                            current_path = single_item_path
-                            iteration += 1
-                            continue
-                
-                # 情况2：检查是否存在与压缩包同名的目录
-                found_same_name = False
-                for item in temp_contents:
-                    item_path = os.path.join(current_path, item)
-                    if os.path.isdir(item_path) and item == archive_name:
-                        print(f"发现同名目录 '{item}'，继续优化")
-                        current_path = item_path
-                        found_same_name = True
-                        iteration += 1
-                        break
-                
-                if found_same_name:
-                    continue
-                
-                # 无法再优化，退出循环
-                break
-            
-            # 移动最终的内容到目标目录
-            if current_path != temp_path:
-                print(f"优化后的路径: {current_path}")
-                shutil.move(current_path, final_path)
-                # 清理原始临时目录
-                if os.path.exists(temp_path) and temp_path != current_path:
-                    self._cleanup_directory(temp_path)
-            else:
-                # 无需优化，直接移动
-                print("使用默认结构，移动所有内容")
-                shutil.move(temp_path, final_path)
-            
         except Exception as e:
-            print(f"优化目录结构时出错: {e}")
-            # 发生错误时，尝试简单移动
-            try:
-                if os.path.exists(temp_path):
-                    shutil.move(temp_path, final_path)
-            except:
-                print("简单移动也失败，保留临时目录")
-    
-    def _contains_meaningful_content(self, directory_path):
-        """检查目录是否包含有意义的内容（非空目录或有实际文件）"""
-        try:
-            for root, dirs, files in os.walk(directory_path):
-                # 如果有文件，说明有实际内容
-                if files:
-                    return True
-                # 如果有非空的子目录，也算有内容
-                for dir_name in dirs:
-                    dir_path = os.path.join(root, dir_name)
-                    if os.listdir(dir_path):  # 非空目录
-                        return True
+            print(f"手动导入 {archive_path} 失败: {e}")
+            import traceback
+            traceback.print_exc()
+            # 清理临时目录
+            self._cleanup_directory(temp_desktop_path)
             return False
-        except:
-            return True  # 出错时保守处理，认为有内容
+
+    def _trigger_ue_refresh(self, content_dir):
+        """触发UE刷新 - 模拟手动操作后UE的文件系统监控"""
+        import os
+        import time
+        
+        try:
+            # 创建多个临时文件来确保UE检测到变化
+            refresh_files = []
+            for i in range(5):
+                trigger_path = os.path.join(content_dir, f"ue_refresh_trigger_{i}.tmp")
+                with open(trigger_path, "w") as f:
+                    f.write(f"Manual refresh trigger {i} - {time.time()}")
+                refresh_files.append(trigger_path)
+                time.sleep(0.05)  # 短暂延迟
+            
+            # 等待一段时间让UE处理
+            time.sleep(0.5)
+            
+            # 删除临时文件
+            for trigger_path in refresh_files:
+                if os.path.exists(trigger_path):
+                    try:
+                        os.remove(trigger_path)
+                    except:
+                        pass
+            
+            # 最终等待
+            time.sleep(0.5)
+            
+            print("UE刷新触发完成")
+        except Exception as e:
+            print(f"触发UE刷新时出错: {e}")
+    
+    def _extract_archive_to_temp(self, archive_path, temp_extract_path, progress_callback=None):
+        """解压压缩包到临时目录"""
+        import zipfile
+        import tarfile
+        import os
+        
+        try:
+            print(f"解压 {archive_path} 到 {temp_extract_path}")
+            
+            if archive_path.lower().endswith('.zip'):
+                with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+                    total_files = len(zip_ref.namelist())
+                    for i, member in enumerate(zip_ref.namelist()):
+                        zip_ref.extract(member, temp_extract_path)
+                        if progress_callback:
+                            progress_callback(i / total_files)
+            elif archive_path.lower().endswith('.7z'):
+                import py7zr
+                with py7zr.SevenZipFile(archive_path, mode='r') as z:
+                    total_files = len(z.getnames())
+                    for i, member in enumerate(z.getnames()):
+                        z.extract(path=temp_extract_path, targets=[member])
+                        if progress_callback:
+                            progress_callback(i / total_files)
+            else:
+                raise ValueError("不支持的压缩包格式")
+            
+            print(f"解压完成: {archive_path}")
+            return True
+        except Exception as e:
+            print(f"解压 {archive_path} 失败: {e}")
+            return False
+    
+
     
     def _cleanup_directory(self, directory_path):
         """清理目录"""

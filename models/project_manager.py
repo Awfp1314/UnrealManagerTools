@@ -36,6 +36,55 @@ class ProjectManager:
         except Exception as e:
             print(f"保存配置失败: {e}")
     
+    def get_running_ue_processes(self) -> List[Dict]:
+        """获取当前运行的虚幻引擎进程"""
+        running_processes = []
+        
+        try:
+            # 尝试导入psutil来获取进程信息
+            import psutil
+            
+            # 查找可能的虚幻引擎相关进程
+            ue_process_names = [
+                'UE4Editor.exe', 'UnrealEditor.exe', 'UE5Editor.exe',
+                'UE4Editor-Win64-Debug.exe', 'UE4Editor-Win64-Development.exe',
+                'UnrealEditor-Win64-Debug.exe', 'UnrealEditor-Win64-Development.exe'
+            ]
+            
+            for proc in psutil.process_iter(['pid', 'name', 'exe', 'cmdline']):
+                try:
+                    # 检查进程名称是否匹配
+                    if proc.info['name'] in ue_process_names:
+                        # 获取进程的命令行参数，通常包含工程路径
+                        cmdline = proc.info['cmdline']
+                        project_path = None
+                        
+                        if cmdline and len(cmdline) > 1:
+                            # 查找命令行中的.uproject文件
+                            for arg in cmdline:
+                                if arg.endswith('.uproject'):
+                                    project_path = arg
+                                    break
+                        
+                        running_processes.append({
+                            'pid': proc.info['pid'],
+                            'name': proc.info['name'],
+                            'exe': proc.info['exe'],
+                            'project_path': project_path,
+                            'project_name': os.path.splitext(os.path.basename(project_path))[0] if project_path else '未知项目'
+                        })
+                        
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    # 忽略无法访问的进程
+                    pass
+                    
+        except ImportError:
+            print("未安装psutil库，无法获取运行中的虚幻引擎进程")
+        except Exception as e:
+            print(f"获取运行进程时出错: {e}")
+        
+        return running_processes
+    
     def search_ue_projects(self, progress_callback=None) -> List[Dict]:
         """搜索系统中的UE工程文件"""
         projects = []
@@ -148,6 +197,9 @@ class ProjectManager:
     
     def get_projects(self) -> List[Dict]:
         """获取所有工程"""
+        # 如果还没有工程列表，先进行搜索
+        if not self.projects:
+            return self.refresh_projects()
         return self.projects
     
     def get_recent_projects(self) -> List[Dict]:
@@ -226,4 +278,6 @@ class ProjectManager:
     
     def refresh_projects(self, progress_callback=None):
         """刷新工程列表"""
-        return self.search_ue_projects(progress_callback)
+        projects = self.search_ue_projects(progress_callback)
+        self.projects = projects  # 确保更新内部工程列表
+        return projects

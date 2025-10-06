@@ -10,7 +10,7 @@ import tempfile
 import zipfile
 
 # 添加项目路径
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def create_test_project_structure():
     """创建测试用的UE工程结构"""
