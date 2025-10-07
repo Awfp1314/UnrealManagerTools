@@ -90,7 +90,8 @@ class AssetManager:
             "category": category,
             "cover": cover,
             "doc": doc_path,
-            "date_added": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "date_added": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "importable": True  # 默认允许导入到虚幻工程
         }
         
         self.resources.append(new_asset)

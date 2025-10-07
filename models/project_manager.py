@@ -130,6 +130,7 @@ class ProjectManager:
         exclude_paths = self.config.get("settings", {}).get("exclude_paths", [
             'appdata\\roaming',  # 屏蔽 AppData\Roaming 目录
             'appdata\\local',    # 屏蔽 AppData\Local 目录  
+            'users\\wang\\appdata\\roaming',  # 特别屏蔽用户 wang 的 AppData\Roaming 目录
             'temp',               # 临时文件目录
             '$recycle.bin',       # 回收站
             'system volume information',  # 系统信息
@@ -141,6 +142,15 @@ class ProjectManager:
             'node_modules',       # Node.js 模块
             '.git',               # Git 仓库
             '__pycache__',        # Python 缓存
+            'saved',              # UE Saved 目录
+            'intermediate',       # UE Intermediate 目录
+            'build',              # UE Build 目录
+            'binaries',           # UE Binaries 目录
+            'deriveddatacache',   # UE DerivedDataCache 目录
+            'developertoolcache', # UE DeveloperToolCache 目录
+            'packaged',           # UE Packaged 目录
+            'plugins',            # UE Plugins 目录
+            'content',            # UE Content 目录（避免重复扫描）
         ])
         
         total_partitions = len(partitions)
