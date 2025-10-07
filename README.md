@@ -69,7 +69,7 @@ Ue_Asset_manger/
 
 ### Method 1: Download Executable (Recommended for General Users)
 
-1. Visit the project's GitHub [Releases](https://github.com/Awfp1314/Ue_Asset_manger/releases) page (no official release yet)
+1. Visit the project's GitHub [Releases](https://github.com/Awfp1314/UnrealManagerTools/releases) page (no official release yet)
 2. Download the latest version of `UE资源管理器_Windows_x64.zip`
 3. Extract the downloaded ZIP file
 4. Run `UE资源管理器.exe` to start using the application
