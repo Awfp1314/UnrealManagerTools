@@ -61,6 +61,7 @@ class DialogUtils:
         label.pack(anchor="w", pady=(0, 5))
         
         # 输入框
+        widget = None
         if entry_type == "entry":
             widget = ctk.CTkEntry(parent, textvariable=var, 
                                  height=35, font=ctk.CTkFont(size=13), **kwargs)
@@ -72,10 +73,11 @@ class DialogUtils:
                                    variable=var, font=ctk.CTkFont(size=13), **kwargs)
             label.destroy()  # 复选框不需要单独的标签
         
-        if entry_type != "checkbox":
-            widget.pack(fill="x", pady=(0, 15))
-        else:
-            widget.pack(anchor="w", pady=15)
+        if widget is not None:
+            if entry_type != "checkbox":
+                widget.pack(fill="x", pady=(0, 15))
+            else:
+                widget.pack(anchor="w", pady=15)
         
         return widget
     
@@ -143,37 +145,3 @@ class DialogUtils:
         else:
             messagebox.showinfo("成功", message)
     
-    @staticmethod
-    def create_category_selector(parent, var, categories, on_change=None):
-        """创建分类选择器（支持自定义分类）"""
-        category_list = [cat for cat in categories if cat != "全部"] + ["自定义..."]
-        if not category_list:
-            category_list = ["未分类", "自定义..."]
-            
-        combo = ctk.CTkComboBox(parent, variable=var, values=category_list,
-                               height=35, font=ctk.CTkFont(size=13))
-        combo.pack(fill="x", pady=(0, 15))
-        
-        # 自定义分类输入框
-        custom_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        custom_var = ctk.StringVar()
-        custom_entry = ctk.CTkEntry(custom_frame, textvariable=custom_var,
-                                   placeholder_text="输入新分类名称",
-                                   height=35, font=ctk.CTkFont(size=13),
-                                   state="readonly")
-        
-        def handle_category_change(choice):
-            if choice == "自定义...":
-                custom_frame.pack(fill="x", pady=(5, 15))
-                custom_entry.pack(fill="x")
-                custom_entry.configure(state="normal")
-            else:
-                custom_frame.pack_forget()
-                custom_entry.configure(state="readonly")
-            
-            if on_change:
-                on_change(choice)
-        
-        combo.configure(command=handle_category_change)
-        
-        return combo, custom_var, custom_frame

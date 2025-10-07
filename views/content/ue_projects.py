@@ -116,9 +116,39 @@ class UEProjectsContent(ctk.CTkFrame):
         self.projects_scroll = ctk.CTkScrollableFrame(projects_frame, height=300)
         self.projects_scroll.pack(fill="both", expand=True, padx=15, pady=(0, 15))
         
+        # 增加滚动速度 - 绑定鼠标滚轮事件
+        self.projects_scroll.bind("<MouseWheel>", self.on_projects_mouse_wheel)
+        self.recent_scroll.bind("<MouseWheel>", self.on_recent_mouse_wheel)
+        
+        # 为所有子组件也绑定滚轮事件
+        self.bind_children_mousewheel(self.projects_scroll)
+        self.bind_children_mousewheel(self.recent_scroll)
+        
         # 初始状态显示
         self.show_loading_state()
-    
+
+    def bind_children_mousewheel(self, widget):
+        """递归绑定所有子组件的鼠标滚轮事件"""
+        widget.bind("<MouseWheel>", self.on_projects_mouse_wheel)
+        for child in widget.winfo_children():
+            self.bind_children_mousewheel(child)
+
+    def on_projects_mouse_wheel(self, event):
+        """处理工程列表鼠标滚轮事件，增加滚动速度"""
+        # 增加滚动速度（默认速度的10倍，让用户感觉更明显）
+        self.projects_scroll._parent_canvas.yview_scroll(-10 * int(event.delta / 120), "units")
+        
+        # 阻止事件继续传播，避免其他组件处理
+        return "break"
+
+    def on_recent_mouse_wheel(self, event):
+        """处理最近工程列表鼠标滚轮事件，增加滚动速度"""
+        # 增加滚动速度（默认速度的10倍，让用户感觉更明显）
+        self.recent_scroll._parent_canvas.yview_scroll(-10 * int(event.delta / 120), "units")
+        
+        # 阻止事件继续传播，避免其他组件处理
+        return "break"
+
     def show_loading_state(self):
         """显示加载状态"""
         self.status_label.configure(text="正在搜索工程...")

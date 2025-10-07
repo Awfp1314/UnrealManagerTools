@@ -9,9 +9,10 @@ from utils.dialog_utils import DialogUtils
 class AssetCard(ctk.CTkFrame):
     def __init__(self, parent, asset, controller, image_utils):
         super().__init__(parent, 
-                        corner_radius=12,
+                        corner_radius=15,  # 设置15px圆角
                         border_width=1,
-                        border_color=("gray70", "gray30"))
+                        border_color=("gray70", "gray30"),
+                        fg_color="transparent")  # 设置默认背景色为透明
         self.asset = asset
         self.controller = controller
         self.image_utils = image_utils
@@ -81,6 +82,9 @@ class AssetCard(ctk.CTkFrame):
                                          font=ctk.CTkFont(size=11, weight="bold"),  # 调整字体大小
                                          text_color=("gray60", "gray60"))
                 date_label.pack(side="right")
+        else:
+            # 如果没有日期，确保分类标签可见
+            self.category_label.pack(side="left", padx=(0, 5))
 
     def bind_events(self):
         """绑定事件"""
@@ -113,7 +117,7 @@ class AssetCard(ctk.CTkFrame):
         # 创建资产详情对话框
         dialog = ctk.CTkToplevel(self.controller.root)
         dialog.title(f"资产详情 - {self.asset.get('name', '未命名')}")
-        dialog.geometry("600x550")  # 增加高度以确保按钮可见
+        dialog.geometry("600x600")  # 增加高度以确保按钮可见
         dialog.transient(self.controller.root)
         dialog.grab_set()
         dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
@@ -194,10 +198,14 @@ class AssetCard(ctk.CTkFrame):
         button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
         button_frame.pack(fill="x")
         
-        # 添加导入到工程按钮
+        # 检查是否允许导入到虚幻工程
+        importable = self.asset.get('importable', True)  # 默认为True
+        
+        # 添加导入到工程按钮（根据importable字段决定是否启用）
         import_btn = ctk.CTkButton(button_frame, text="🎮 导入到UE工程",
                                   command=lambda: self.import_to_ue_project_from_details(dialog),
-                                  height=35, width=150)
+                                  height=35, width=150,
+                                  state="normal" if importable else "disabled")  # 根据importable字段设置状态
         import_btn.pack(side="left", padx=5)
         
         # 添加打开文件夹按钮
@@ -249,13 +257,16 @@ class AssetCard(ctk.CTkFrame):
         menu_frame = ctk.CTkFrame(self.context_menu, fg_color="transparent")
         menu_frame.pack(fill="both", expand=True, padx=1, pady=1)
         
+        # 检查是否允许导入到虚幻工程
+        importable = self.asset.get('importable', True)  # 默认为True
+        
         # 菜单按钮 - 修改解压选项为导入到工程
         buttons = [
             ("📄 打开文档", self.open_document),
             ("📂 打开文件夹", self.open_folder),
             ("✏️ 编辑资产", self.edit_asset),  # 新增的编辑资产选项
             ("📁 更改分类", self.change_category),
-            ("🎮 导入到UE工程", self.import_to_ue_project),  # 修改为导入到虚幻引擎工程
+            ("🎮 导入到UE工程", self.import_to_ue_project if importable else None),  # 根据importable字段决定是否启用
             ("---", None),
             ("🗑️ 删除资源", self.remove_asset)
         ]
@@ -273,7 +284,8 @@ class AssetCard(ctk.CTkFrame):
                                    anchor="w",
                                    fg_color="transparent",
                                    hover_color=('#e0e0e0', 'gray30'),
-                                   text_color=('#333333', '#ffffff'))
+                                   text_color=('#333333', '#ffffff'),
+                                   state="normal" if command else "disabled")  # 根据command是否存在决定按钮状态
                 btn.pack(fill="x", padx=2, pady=1)
         
         # 绑定智能关闭事件 - 鼠标移出资产区域自动关闭
@@ -399,12 +411,22 @@ class AssetCard(ctk.CTkFrame):
         self.configure(fg_color=("#e0f2fe", "#1e3a8a"),
                       border_color=("#3b82f6", "#60a5fa"),
                       border_width=2)
+        # 确保标签文本也加粗显示
+        if hasattr(self, 'category_label') and self.category_label:
+            self.category_label.configure(font=ctk.CTkFont(size=12, weight="bold"))
+        if hasattr(self, 'name_label') and self.name_label:
+            self.name_label.configure(font=ctk.CTkFont(size=14, weight="bold"))
 
     def on_leave(self, event):
         """鼠标离开 - 恢复默认样式"""
-        self.configure(fg_color=("gray90", "gray25"),
+        self.configure(fg_color="transparent",
                       border_color=("gray70", "gray30"),
                       border_width=1)
+        # 恢复标签文本默认样式
+        if hasattr(self, 'category_label') and self.category_label:
+            self.category_label.configure(font=ctk.CTkFont(size=12, weight="bold"))
+        if hasattr(self, 'name_label') and self.name_label:
+            self.name_label.configure(font=ctk.CTkFont(size=14, weight="bold"))
 
     def open_document(self):
         """打开文档"""
@@ -517,6 +539,7 @@ class AssetCard(ctk.CTkFrame):
         
         # 添加标签页
         all_projects_tab = tabview.add("所有工程")
+        running_tab = None
         if running_processes:
             running_tab = tabview.add("运行中的工程")
         
@@ -546,7 +569,7 @@ class AssetCard(ctk.CTkFrame):
             no_projects_label.pack(pady=50)
         
         # 运行中的工程标签页内容（如果有的话）
-        if running_processes:
+        if running_processes and running_tab:
             # 运行中工程列表框架
             running_frame = ctk.CTkFrame(running_tab)
             running_frame.pack(fill="both", expand=True)
@@ -570,17 +593,19 @@ class AssetCard(ctk.CTkFrame):
         
         # 手动选择按钮 - 设置明确的尺寸
         manual_button = ctk.CTkButton(button_frame, text="手动选择文件", 
-                                     width=120, height=35,
-                                     command=lambda: self.manual_select_project(selection_dialog, archive_files))
-        manual_button.pack(side="left", padx=(0, 15), pady=15)
+                                     width=150, height=40,
+                                     command=lambda: self.manual_select_project(selection_dialog, archive_files),
+                                     font=ctk.CTkFont(size=13, weight="bold"))
+        manual_button.pack(side="left", padx=(0, 20), pady=20)
         
         # 取消按钮 - 设置明确的尺寸
         cancel_button = ctk.CTkButton(button_frame, text="取消",
-                                     width=80, height=35,
+                                     width=100, height=40,
                                      command=selection_dialog.destroy,
                                      fg_color="transparent",
-                                     border_width=1)
-        cancel_button.pack(side="right", padx=(0, 15), pady=15)
+                                     border_width=2,
+                                     font=ctk.CTkFont(size=13, weight="bold"))
+        cancel_button.pack(side="right", padx=(0, 20), pady=20)
         
         # 存储找到的工程
         self.found_projects = projects
@@ -667,6 +692,18 @@ class AssetCard(ctk.CTkFrame):
             print(f"获取预加载工程列表失败: {e}")
             return []
     
+    def display_found_projects(self, projects, archive_files):
+        """显示找到的工程列表"""
+        self.found_projects = projects
+        
+        # 注意：这个方法似乎不应该直接访问scrollable_frame，因为它是在show_ue_project_selection_dialog中创建的
+        # 这里应该接收一个parent参数或者使用其他方式来显示内容
+        # 由于这个方法可能不再使用，我们可以暂时保留但添加注释说明
+        
+        # 如果需要显示内容，应该通过传入的parent参数来实现
+        # 这里暂时保留原逻辑但添加警告注释
+        print("Warning: display_found_projects method may be deprecated or incorrectly implemented")
+    
     def display_found_projects_simple(self, parent, projects, archive_files):
         """显示找到的工程列表（简化版）"""
         if not projects:
@@ -708,44 +745,7 @@ class AssetCard(ctk.CTkFrame):
     
 
     
-    def display_found_projects(self, projects, archive_files):
-        """显示找到的工程列表"""
-        self.found_projects = projects
-        
-        if not projects:
-            no_projects_label = ctk.CTkLabel(self.scrollable_frame, 
-                                           text="未找到UE工程文件",
-                                           font=ctk.CTkFont(size=12),
-                                           text_color=("gray50", "gray50"))
-            no_projects_label.pack(pady=20)
-            return
-        
-        # 显示每个工程
-        for project in projects:
-            project_frame = ctk.CTkFrame(self.scrollable_frame, height=80)  # 设置固定高度
-            project_frame.pack(fill="x", padx=5, pady=3)
-            project_frame.pack_propagate(False)  # 防止框架收缩
-            
-            # 工程信息
-            info_frame = ctk.CTkFrame(project_frame, fg_color="transparent")
-            info_frame.pack(fill="both", expand=True, padx=12, pady=10)
-            
-            # 工程名称
-            name_label = ctk.CTkLabel(info_frame, text=project['name'],
-                                     font=ctk.CTkFont(size=13, weight="bold"))
-            name_label.pack(anchor="w")
-            
-            # 工程路径
-            path_label = ctk.CTkLabel(info_frame, text=project['path'],
-                                     font=ctk.CTkFont(size=10),
-                                     text_color=("gray50", "gray50"))
-            path_label.pack(anchor="w", pady=(2, 8))
-            
-            # 选择按钮 - 在右上角固定位置
-            select_button = ctk.CTkButton(info_frame, text="选择此工程",
-                                         width=100, height=32,
-                                         command=lambda p=project: self.select_project(p, archive_files))
-            select_button.place(relx=1.0, rely=0.0, anchor="ne")
+
     
     def manual_select_project(self, dialog, archive_files):
         """手动选择工程文件"""
@@ -789,15 +789,6 @@ class AssetCard(ctk.CTkFrame):
         # 显示导入进度对话框
         self.show_import_progress_dialog(archive_files, content_dir, project['name'])
     
-    def find_archive_files(self, folder_path):
-        """查找文件夹中的压缩包"""
-        archive_files = []
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                if file.lower().endswith(('.zip', '.7z')):
-                    archive_files.append(os.path.join(root, file))
-        return archive_files
-    
     def show_import_progress_dialog(self, archive_files, content_dir, project_name):
         """显示导入进度对话框"""
         import threading
@@ -805,7 +796,7 @@ class AssetCard(ctk.CTkFrame):
         # 创建进度对话框
         progress_dialog = ctk.CTkToplevel(self.controller.root)
         progress_dialog.title("导入到虚幻引擎工程")
-        progress_dialog.geometry("500x200")  # 减小高度以显示更多信息
+        progress_dialog.geometry("500x250")  # 增加高度以确保按钮可见
         progress_dialog.transient(self.controller.root)
         progress_dialog.grab_set()
         progress_dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
@@ -848,10 +839,10 @@ class AssetCard(ctk.CTkFrame):
                                      width=50)
         progress_label.pack(side="right", padx=(10, 0))
         
-        # 取消按钮
-        cancel_button = ctk.CTkButton(main_frame, text="取消", width=100,
+        # 取消按钮 - 增加按钮尺寸确保不会被压扁
+        cancel_button = ctk.CTkButton(main_frame, text="取消", width=100, height=35,
                                      command=lambda: self.cancel_import(progress_dialog))
-        cancel_button.pack()
+        cancel_button.pack(pady=(15, 0))
         
         # 初始化取消标志
         self.import_cancelled = False
@@ -924,6 +915,7 @@ class AssetCard(ctk.CTkFrame):
                                     self.show_import_error(msg)
                                 except:
                                     pass
+                            return show  # 返回函数而不是调用它
                         progress_dialog.after(0, show_error(error_msg))
                     elif success:
                         print(f"导入 {filename} 成功")
@@ -977,11 +969,12 @@ class AssetCard(ctk.CTkFrame):
                             self.show_import_error(msg)
                         except:
                             pass
+                    return show  # 返回函数而不是调用它
                 progress_dialog.after(0, show_error(error_msg))
         
         # 启动导入线程
-        import_thread = threading.Thread(target=import_thread, daemon=True)
-        import_thread.start()
+        import_thread_obj = threading.Thread(target=import_thread, daemon=True)
+        import_thread_obj.start()
     
     def update_progress_in_thread(self, dialog, progress_bar, progress_label, base_progress, additional_progress):
         """线程安全的进度更新"""
@@ -1077,55 +1070,19 @@ class AssetCard(ctk.CTkFrame):
                 with zipfile.ZipFile(archive_path, 'r') as zip_ref:
                     zip_ref.extractall(temp_desktop_path)
             elif archive_path.lower().endswith('.7z'):
-                # 尝试多种方法解压7z文件
-                success = False
-                
-                # 方法1: 尝试使用系统7z命令，添加-mtc=off参数
+                import py7zr
+                # 修复SevenZipFile的with语句问题
+                z = py7zr.SevenZipFile(archive_path, mode='r')
                 try:
-                    cmd = ['7z', 'x', archive_path, f'-o{temp_desktop_path}', '-y', '-mtc=off']
-                    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-                    if result.returncode == 0:
-                        success = True
-                        print("使用系统7z命令解压成功")
-                    else:
-                        print(f"7z命令执行失败: {result.stderr}")
-                except (FileNotFoundError, subprocess.TimeoutExpired) as e:
-                    print(f"7z命令不可用或超时: {e}")
-                
-                # 方法2: 如果系统7z命令不可用，尝试使用py7zr库
-                if not success:
-                    try:
-                        import py7zr
-                        # 检查py7zr版本和API
-                        if hasattr(py7zr, 'SevenZipFile'):
-                            archive = py7zr.SevenZipFile(archive_path, mode='r')
-                            archive.extractall(path=temp_desktop_path)
-                            archive.close()
-                            success = True
-                            print("使用py7zr库解压成功")
-                        else:
-                            print("py7zr库版本不兼容")
-                    except Exception as py7zr_error:
-                        print(f"py7zr解压失败: {py7zr_error}")
-                
-                # 方法3: 如果以上方法都失败，尝试使用系统tar命令（某些7z文件可能支持）
-                if not success:
-                    try:
-                        cmd = ['tar', '-xf', archive_path, '-C', temp_desktop_path]
-                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-                        if result.returncode == 0:
-                            success = True
-                            print("使用tar命令解压成功")
-                        else:
-                            print(f"tar命令执行失败: {result.stderr}")
-                    except (FileNotFoundError, subprocess.TimeoutExpired) as e:
-                        print(f"tar命令不可用或超时: {e}")
-                
-                # 如果所有方法都失败，显示友好的错误提示
-                if not success:
-                    error_msg = "无法解压7z文件，未找到可用的解压工具。\n请安装7-Zip软件（https://www.7-zip.org/）或确保py7zr库正确安装。"
-                    print(error_msg)
-                    raise Exception(error_msg)
+                    total_files = len(z.getnames())
+                    for i, member in enumerate(z.getnames()):
+                        z.extract(path=temp_desktop_path, targets=[member])  # 修复变量名
+                        if progress_callback:
+                            progress_callback(i / total_files)
+                finally:
+                    z.close()
+            else:
+                raise ValueError("不支持的压缩包格式")
             
             if self.import_cancelled:
                 self._cleanup_directory(temp_desktop_path)
@@ -1305,6 +1262,16 @@ class AssetCard(ctk.CTkFrame):
         except Exception as e:
             print(f"触发UE刷新时出错: {e}")
     
+    def _cleanup_directory(self, directory_path):
+        """清理目录"""
+        import shutil
+        try:
+            if os.path.exists(directory_path):
+                shutil.rmtree(directory_path)
+                print(f"已清理目录: {directory_path}")
+        except Exception as e:
+            print(f"清理目录失败: {e}")
+    
     def _extract_archive_to_temp(self, archive_path, temp_extract_path, progress_callback=None):
         """解压压缩包到临时目录"""
         import zipfile
@@ -1323,12 +1290,16 @@ class AssetCard(ctk.CTkFrame):
                             progress_callback(i / total_files)
             elif archive_path.lower().endswith('.7z'):
                 import py7zr
-                with py7zr.SevenZipFile(archive_path, mode='r') as z:
+                # 修复SevenZipFile的with语句问题
+                z = py7zr.SevenZipFile(archive_path, mode='r')
+                try:
                     total_files = len(z.getnames())
                     for i, member in enumerate(z.getnames()):
                         z.extract(path=temp_extract_path, targets=[member])
                         if progress_callback:
                             progress_callback(i / total_files)
+                finally:
+                    z.close()
             else:
                 raise ValueError("不支持的压缩包格式")
             
@@ -1338,22 +1309,10 @@ class AssetCard(ctk.CTkFrame):
             print(f"解压 {archive_path} 失败: {e}")
             return False
     
-
-    
-    def _cleanup_directory(self, directory_path):
-        """清理目录"""
-        import shutil
-        try:
-            if os.path.exists(directory_path):
-                shutil.rmtree(directory_path)
-                print(f"已清理目录: {directory_path}")
-        except Exception as e:
-            print(f"清理目录失败: {e}")
-    
     def extract_7z_with_system_command(self, archive_path, temp_extract_path, progress_callback=None):
         """使用系统命令解压7z文件到临时目录"""
+        import subprocess  # 提前导入subprocess
         try:
-            import subprocess
             print(f"尝试使用系统 7z 命令解压: {archive_path}")
             
             # 确保临时目录存在
@@ -1432,7 +1391,7 @@ class AssetCard(ctk.CTkFrame):
         # 创建编辑资产对话框
         dialog = ctk.CTkToplevel(self.controller.root)
         dialog.title("编辑资产")
-        dialog.geometry("500x600")  # 增加高度以确保按钮可见
+        dialog.geometry("500x650")  # 增加高度以确保按钮可见
         dialog.transient(self.controller.root)
         dialog.grab_set()
         dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
@@ -1470,35 +1429,17 @@ class AssetCard(ctk.CTkFrame):
                     font=ctk.CTkFont(size=13, weight="bold")).pack(anchor="w", pady=(0, 5))
         category_var = ctk.StringVar(value=self.asset.get('category', ''))
         
-        # 添加自定义选项到分类列表
-        category_list = [cat for cat in self.controller.asset_manager.categories if cat != "全部"] + ["自定义..."]
+        # 获取现有分类列表（不包括"全部"）
+        category_list = [cat for cat in self.controller.asset_manager.categories if cat != "全部"]
         if not category_list:
-            category_list = ["未分类", "自定义..."]
+            category_list = ["未分类"]
             
+        # 创建可编辑的组合框，允许用户输入新的分类名称
         category_combo = ctk.CTkComboBox(form_frame, variable=category_var, 
                                        values=category_list,
-                                       height=35, font=ctk.CTkFont(size=13))
+                                       height=35, font=ctk.CTkFont(size=13),
+                                       state="normal")  # 设置为可编辑状态
         category_combo.pack(fill="x", pady=(0, 15))
-        
-        # 自定义分类输入框（默认隐藏）
-        custom_category_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        custom_category_var = ctk.StringVar()
-        custom_category_entry = ctk.CTkEntry(custom_category_frame, 
-                                           textvariable=custom_category_var,
-                                           placeholder_text="输入新分类名称",
-                                           height=35, font=ctk.CTkFont(size=13),
-                                           state="readonly")  # 初始状态为不可编辑
-        
-        def on_category_change(choice):
-            if choice == "自定义...":
-                custom_category_frame.pack(fill="x", pady=(5, 15))
-                custom_category_entry.pack(fill="x")
-                custom_category_entry.configure(state="normal")  # 自定义时可编辑
-            else:
-                custom_category_frame.pack_forget()
-                custom_category_entry.configure(state="readonly")  # 已有分类时不可编辑
-        
-        category_combo.configure(command=on_category_change)
         
         # 封面图片
         ctk.CTkLabel(form_frame, text="封面图片:", 
@@ -1520,22 +1461,56 @@ class AssetCard(ctk.CTkFrame):
                                       font=ctk.CTkFont(size=13))
         readme_check.pack(anchor="w", pady=15)
         
+        # 是否允许导入到虚幻工程
+        importable_var = ctk.BooleanVar(value=self.asset.get('importable', True))
+        importable_check = ctk.CTkCheckBox(form_frame, text="允许导入到虚幻工程",
+                                          variable=importable_var,
+                                          font=ctk.CTkFont(size=13))
+        importable_check.pack(anchor="w", pady=5)
+        
         def apply_changes():
-            category = custom_category_var.get() if category_var.get() == "自定义..." else category_var.get()
+            # 获取用户输入的分类名称
+            category = category_var.get()
             if not category:
                 if hasattr(self.controller, 'show_status'):
-                    self.controller.show_status("请选择或输入分类", "error")
+                    self.controller.show_status("请输入或选择分类", "error")
                 return
                 
-            if category_var.get() == "自定义...":
+            # 检查分类是否已存在，如果不存在则创建新分类
+            if category not in self.controller.asset_manager.categories:
                 if not self.controller.asset_manager.add_category(category):
                     if hasattr(self.controller, 'show_status'):
                         self.controller.show_status("添加分类失败", "error")
                     return
             
-            if self.controller.asset_manager.update_resource(
-                self.asset, name_var.get(), category, path_var.get(), 
-                cover_var.get(), readme_var.get()):
+            # 更新资源信息，包括importable字段
+            self.asset.update({
+                'name': name_var.get(),
+                'path': path_var.get(),
+                'category': category,  # 使用用户输入的分类
+                'cover': cover_var.get(),
+                'importable': importable_var.get()
+            })
+            
+            # 如果需要创建/更新README
+            if readme_var.get():
+                doc_path = os.path.join(path_var.get(), "README.md")
+                try:
+                    with open(doc_path, 'w', encoding='utf-8') as f:
+                        f.write(f"# {name_var.get()}\n\n资源描述...")
+                    self.asset['doc'] = doc_path
+                except Exception as e:
+                    import logging
+                    logging.error(f"创建/更新README失败: {e}")
+                    if hasattr(self.controller, 'show_status'):
+                        self.controller.show_status("创建/更新README失败", "error")
+                    return
+            elif self.asset.get('doc'):
+                # 如果之前有README但用户取消了创建，则移除doc字段
+                self.asset.pop('doc', None)
+            
+            # 保存数据
+            if self.controller.asset_manager.save_data():
                 dialog.destroy()
                 self.controller.refresh_content()
                 if hasattr(self.controller, 'show_status'):
@@ -1555,13 +1530,6 @@ class AssetCard(ctk.CTkFrame):
         ctk.CTkButton(btn_frame, text="取消", command=dialog.destroy,
                      width=80, height=35, fg_color="transparent", 
                      border_width=1).pack(side="right", padx=5)
-
-    def browse_folder(self, folder_var):
-        """浏览文件夹"""
-        from tkinter import filedialog
-        folder = filedialog.askdirectory(title="选择文件夹")
-        if folder:
-            folder_var.set(folder)
 
     def browse_file(self, file_var, filetypes):
         """浏览文件"""
@@ -1596,7 +1564,7 @@ class AssetCard(ctk.CTkFrame):
         # 创建更改分类对话框
         dialog = ctk.CTkToplevel(self.controller.root)
         dialog.title("更改分类")
-        dialog.geometry("400x350")  # 增加高度以确保按钮可见
+        dialog.geometry("400x400")  # 增加高度以确保按钮可见
         dialog.transient(self.controller.root)
         dialog.grab_set()
         dialog.resizable(False, False)  # 设置弹窗为不可由用户自由调整大小
@@ -1629,11 +1597,13 @@ class AssetCard(ctk.CTkFrame):
             available_categories = ["未分类"]
             
         category_var = ctk.StringVar(value=current_category)
+        # 创建可编辑的组合框，允许用户输入新的分类名称
         category_combo = ctk.CTkComboBox(form_frame, 
                                        variable=category_var,
                                        values=available_categories,
                                        height=35,
-                                       font=ctk.CTkFont(size=13))
+                                       font=ctk.CTkFont(size=13),
+                                       state="normal")  # 设置为可编辑状态
         category_combo.pack(fill="x", pady=(0, 20))
         
         # 按钮框架 - 修改为 pack 到底部确保可见
@@ -1642,10 +1612,23 @@ class AssetCard(ctk.CTkFrame):
         
         def apply_change():
             new_category = category_var.get()
+            if not new_category:
+                if hasattr(self.controller, 'show_status'):
+                    self.controller.show_status("请输入或选择分类", "error")
+                return
+            
             if new_category == current_category:
                 dialog.destroy()
                 return
                 
+            # 检查分类是否已存在，如果不存在则创建新分类
+            if new_category not in self.controller.asset_manager.categories:
+                if not self.controller.asset_manager.add_category(new_category):
+                    if hasattr(self.controller, 'show_status'):
+                        self.controller.show_status("添加分类失败", "error")
+                    dialog.destroy()
+                    return
+            
             # 更新资源分类
             self.asset['category'] = new_category
             if self.controller.asset_manager.save_data():
@@ -1658,14 +1641,16 @@ class AssetCard(ctk.CTkFrame):
                     self.controller.show_status("更改分类失败", "error")
         
         ctk.CTkButton(btn_frame, text="应用", command=apply_change,
-                     width=80).pack(side="left", padx=5)
+                     width=80, height=35).pack(side="left", padx=5)
         ctk.CTkButton(btn_frame, text="取消", command=dialog.destroy,
-                     width=80, fg_color="transparent", 
+                     width=80, height=35, fg_color="transparent", 
                      border_width=1).pack(side="right", padx=5)
 
     def browse_folder(self, folder_var):
         """浏览文件夹"""
         from tkinter import filedialog
         folder = filedialog.askdirectory(title="选择文件夹")
+        if folder:
+            folder_var.set(folder)
         if folder:
             folder_var.set(folder)
