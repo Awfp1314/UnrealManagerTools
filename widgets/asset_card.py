@@ -517,6 +517,7 @@ class AssetCard(ctk.CTkFrame):
         
         # 添加标签页
         all_projects_tab = tabview.add("所有工程")
+        running_tab = None
         if running_processes:
             running_tab = tabview.add("运行中的工程")
         
@@ -708,12 +709,12 @@ class AssetCard(ctk.CTkFrame):
     
 
     
-    def display_found_projects(self, projects, archive_files):
+    def display_found_projects(self, parent, projects, archive_files):
         """显示找到的工程列表"""
         self.found_projects = projects
         
         if not projects:
-            no_projects_label = ctk.CTkLabel(self.scrollable_frame, 
+            no_projects_label = ctk.CTkLabel(parent, 
                                            text="未找到UE工程文件",
                                            font=ctk.CTkFont(size=12),
                                            text_color=("gray50", "gray50"))
@@ -722,7 +723,7 @@ class AssetCard(ctk.CTkFrame):
         
         # 显示每个工程
         for project in projects:
-            project_frame = ctk.CTkFrame(self.scrollable_frame, height=80)  # 设置固定高度
+            project_frame = ctk.CTkFrame(parent, height=80)  # 设置固定高度
             project_frame.pack(fill="x", padx=5, pady=3)
             project_frame.pack_propagate(False)  # 防止框架收缩
             
@@ -788,15 +789,6 @@ class AssetCard(ctk.CTkFrame):
         
         # 显示导入进度对话框
         self.show_import_progress_dialog(archive_files, content_dir, project['name'])
-    
-    def find_archive_files(self, folder_path):
-        """查找文件夹中的压缩包"""
-        archive_files = []
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                if file.lower().endswith(('.zip', '.7z')):
-                    archive_files.append(os.path.join(root, file))
-        return archive_files
     
     def show_import_progress_dialog(self, archive_files, content_dir, project_name):
         """显示导入进度对话框"""
@@ -919,12 +911,11 @@ class AssetCard(ctk.CTkFrame):
                         error_msg = f"导入 {filename} 失败"
                         print(error_msg)
                         def show_error(msg):
-                            def show():
-                                try:
-                                    self.show_import_error(msg)
-                                except:
-                                    pass
-                        progress_dialog.after(0, show_error(error_msg))
+                            try:
+                                self.show_import_error(msg)
+                            except:
+                                pass
+                        progress_dialog.after(0, lambda: show_error(error_msg))
                     elif success:
                         print(f"导入 {filename} 成功")
                     
@@ -972,16 +963,15 @@ class AssetCard(ctk.CTkFrame):
                 error_msg = f"导入过程中出错: {str(e)}"
                 print(error_msg)
                 def show_error(msg):
-                    def show():
-                        try:
-                            self.show_import_error(msg)
-                        except:
-                            pass
-                progress_dialog.after(0, show_error(error_msg))
+                    try:
+                        self.show_import_error(msg)
+                    except:
+                        pass
+                progress_dialog.after(0, lambda: show_error(error_msg))
         
         # 启动导入线程
-        import_thread = threading.Thread(target=import_thread, daemon=True)
-        import_thread.start()
+        thread = threading.Thread(target=import_thread, daemon=True)
+        thread.start()
     
     def update_progress_in_thread(self, dialog, progress_bar, progress_label, base_progress, additional_progress):
         """线程安全的进度更新"""
@@ -1323,12 +1313,15 @@ class AssetCard(ctk.CTkFrame):
                             progress_callback(i / total_files)
             elif archive_path.lower().endswith('.7z'):
                 import py7zr
-                with py7zr.SevenZipFile(archive_path, mode='r') as z:
-                    total_files = len(z.getnames())
-                    for i, member in enumerate(z.getnames()):
-                        z.extract(path=temp_extract_path, targets=[member])
+                archive = py7zr.SevenZipFile(archive_path, mode='r')
+                try:
+                    total_files = len(archive.getnames())
+                    for i, member in enumerate(archive.getnames()):
+                        archive.extract(path=temp_extract_path, targets=[member])
                         if progress_callback:
                             progress_callback(i / total_files)
+                finally:
+                    archive.close()
             else:
                 raise ValueError("不支持的压缩包格式")
             
@@ -1352,6 +1345,7 @@ class AssetCard(ctk.CTkFrame):
     
     def extract_7z_with_system_command(self, archive_path, temp_extract_path, progress_callback=None):
         """使用系统命令解压7z文件到临时目录"""
+        import subprocess
         try:
             import subprocess
             print(f"尝试使用系统 7z 命令解压: {archive_path}")
@@ -1662,10 +1656,3 @@ class AssetCard(ctk.CTkFrame):
         ctk.CTkButton(btn_frame, text="取消", command=dialog.destroy,
                      width=80, fg_color="transparent", 
                      border_width=1).pack(side="right", padx=5)
-
-    def browse_folder(self, folder_var):
-        """浏览文件夹"""
-        from tkinter import filedialog
-        folder = filedialog.askdirectory(title="选择文件夹")
-        if folder:
-            folder_var.set(folder)

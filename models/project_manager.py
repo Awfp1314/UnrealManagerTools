@@ -12,7 +12,16 @@ DEFAULT_PROJECTS_CONFIG = {
     "settings": {
         "auto_scan": True,
         "scan_paths": ["C:\\"],
-        "exclude_paths": ["C:\\Windows", "C:\\Program Files"],
+        "exclude_paths": [
+            "C:\\Windows", "C:\\Program Files", "C:\\Program Files (x86)",
+            "C:\\ProgramData\\Epic\\EpicGamesLauncher\\VaultCache",
+            "AppData\\Roaming", "AppData\\Local", 
+            "Documents\\Visual Studio Code", "Documents\\GitHub",
+            ".vs", ".vscode", "node_modules", ".git", "__pycache__",
+            "Temp", "$Recycle.Bin", "System Volume Information",
+            # UE引擎相关排除路径
+            "Epic Games\\UE_", "Unreal Engine", "Templates", "Samples"
+        ],
         "max_projects": 50
     },
     "version": "1.0.0"
@@ -108,6 +117,35 @@ class ProjectManager:
         
         return running_processes
     
+    def _is_ue_engine_path(self, path_lower: str) -> bool:
+        """
+        检查是否为UE引擎的安装目录、模板或示例目录
+        
+        Args:
+            path_lower: 小写的路径字符串
+            
+        Returns:
+            如果是UE引擎目录则返回true
+        """
+        # 检查是否是在Program Files下的Epic Games官方安装目录
+        if 'program files' in path_lower and 'epic games' in path_lower:
+            # Epic Games官方安装的UE引擎目录
+            if any(pattern in path_lower for pattern in ['\\ue_', 'unreal engine']):
+                return True
+        
+        # 检查是否包含明显的引擎特征目录（只在引擎安装目录下才算）
+        engine_feature_dirs = ['templates', 'samples', 'featurepacks']
+        if any(feature in path_lower for feature in engine_feature_dirs):
+            # 进一步检查这些目录是否在引擎安装目录下
+            if any(engine_pattern in path_lower for engine_pattern in ['epic games\\ue_', 'program files\\epic games', 'program files\\unreal engine']):
+                return True
+        
+        # 检查是否是Engine目录下的内容（引擎源码或安装目录）
+        if 'engine\\content' in path_lower or 'engine\\plugins' in path_lower:
+            return True
+        
+        return False
+    
     def search_ue_projects(self, progress_callback=None) -> List[Dict]:
         """搜索系统中的UE工程文件"""
         projects = []
@@ -126,22 +164,54 @@ class ProjectManager:
                 if os.path.exists(drive):
                     partitions.append(type('Partition', (), {'mountpoint': drive, 'opts': '', 'fstype': 'NTFS'})())
         
-        # 获取排除路径设置
-        exclude_paths = self.config.get("settings", {}).get("exclude_paths", [
-            'appdata\\roaming',  # 屏蔽 AppData\Roaming 目录
-            'appdata\\local',    # 屏蔽 AppData\Local 目录  
-            'temp',               # 临时文件目录
-            '$recycle.bin',       # 回收站
+        # 获取排除路径设置，并确保包含用户路径的常见干扰目录
+        config_exclude_paths = self.config.get("settings", {}).get("exclude_paths", [])
+        
+        # 基础排除路径（总是应用）
+        base_exclude_paths = [
+            'appdata\\roaming',    # AppData\Roaming 目录
+            'appdata\\local',      # AppData\Local 目录  
+            'temp',                 # 临时文件目录
+            '$recycle.bin',         # 回收站
             'system volume information',  # 系统信息
-            'windows',            # Windows 系统目录
-            'program files',      # 程序安装目录
+            'windows',              # Windows 系统目录
+            'program files',        # 程序安装目录（任意驱动器）
+            'program files (x86)',  # 32位程序安装目录（任意驱动器）
             'programdata\\epic\\epicgameslauncher\\vaultcache',  # Epic 缓存目录
-            '.vs',                # Visual Studio 缓存
-            '.vscode',            # VS Code 缓存
-            'node_modules',       # Node.js 模块
-            '.git',               # Git 仓库
-            '__pycache__',        # Python 缓存
-        ])
+            '.vs',                  # Visual Studio 缓存
+            '.vscode',              # VS Code 缓存
+            'node_modules',         # Node.js 模块
+            '.git',                 # Git 仓库
+            '__pycache__',          # Python 缓存
+            # 用户文档目录下的常见干扰路径
+            'documents\\visual studio code',  # VS Code 用户数据
+            'documents\\github',             # GitHub Desktop
+            'documents\\windowspowershell',  # PowerShell 配置
+            # VS Code 历史记录和缓存
+            'user\\history',        # VS Code 历史记录
+            'user\\workspaceStorage', # VS Code 工作区存储
+            'extensions',           # VS Code 扩展
+            # 其他开发工具缓存
+            '.nuget',               # NuGet 包缓存
+            'node_cache',           # Node 缓存
+            'npm-cache',            # NPM 缓存
+        ]
+        
+        # UE引擎相关排除路径（只针对明确的引擎安装目录）
+        engine_exclude_patterns = [
+            'epic games\\ue_',              # Epic Games\UE_x.xx 引擎安装目录
+            'program files\\epic games',    # Program Files下的Epic Games目录
+            'program files\\unreal engine', # Program Files下的Unreal Engine目录
+            'engine\\content',              # 引擎内容目录
+            'engine\\plugins',             # 引擎插件目录
+        ]
+        base_exclude_paths.extend(engine_exclude_patterns)
+        
+        # 合并配置文件中的排除路径和基础排除路径
+        exclude_paths = base_exclude_paths.copy()
+        for path in config_exclude_paths:
+            # 将配置文件中的路径转换为小写并添加到排除列表
+            exclude_paths.append(path.lower().replace('\\', '\\'))
         
         total_partitions = len(partitions)
         
@@ -159,13 +229,34 @@ class ProjectManager:
                 # 搜索该磁盘下的.uproject文件
                 for root, dirs, files in os.walk(drive):
                     # 检查是否在屏蔽路径列表中
-                    root_lower = root.lower()
+                    root_lower = root.lower().replace('\\', '\\')
                     should_skip = False
                     
+                    # 更精确的路径匹配
                     for excluded in exclude_paths:
+                        # 检查路径是否包含排除关键词
                         if excluded in root_lower:
                             should_skip = True
+                            print(f"跳过目录 (匹配排除规则 '{excluded}'): {root}")
                             break
+                        
+                        # 特别检查用户目录下的特定路径
+                        if 'users\\' in root_lower:
+                            # 检查是否是用户目录下的系统/缓存文件夹
+                            user_relative_path = root_lower.split('users\\', 1)[-1]
+                            if '\\' in user_relative_path:
+                                user_folder = user_relative_path.split('\\', 1)[-1]
+                                if any(exc in user_folder for exc in ['appdata', 'documents\\visual studio code', 'documents\\github']):
+                                    should_skip = True
+                                    print(f"跳过用户目录下的系统文件夹: {root}")
+                                    break
+                    
+                    # 特殊检查：UE引擎安装目录和模板
+                    if not should_skip:
+                        # 检查是否是UE引擎的模板或示例目录
+                        if self._is_ue_engine_path(root_lower):
+                            should_skip = True
+                            print(f"跳过UE引擎模板/示例目录: {root}")
                     
                     if should_skip:
                         dirs.clear()  # 不深入这些目录
@@ -176,13 +267,26 @@ class ProjectManager:
                             project_path = os.path.join(root, file)
                             
                             # 再次检查完整路径是否包含屏蔽关键词
-                            project_path_lower = project_path.lower()
+                            project_path_lower = project_path.lower().replace('\\', '\\')
                             is_excluded = False
                             
                             for excluded in exclude_paths:
                                 if excluded in project_path_lower:
                                     is_excluded = True
+                                    print(f"排除工程文件 (匹配规则 '{excluded}'): {project_path}")
                                     break
+                            
+                            # 额外检查：排除明显的临时文件或缓存文件
+                            if not is_excluded:
+                                # 检查文件名是否包含可疑特征
+                                filename_lower = file.lower()
+                                suspicious_patterns = ['temp', 'cache', 'backup', 'copy', 'test']
+                                
+                                # 检查路径中是否包含版本控制相关目录
+                                path_segments = project_path_lower.split(os.sep)
+                                if any(segment in ['.git', '.svn', '.hg', 'node_modules'] for segment in path_segments):
+                                    is_excluded = True
+                                    print(f"排除版本控制目录中的工程: {project_path}")
                             
                             if not is_excluded:
                                 # 获取文件信息

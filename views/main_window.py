@@ -18,8 +18,10 @@ class MainWindow:
     
     def show_status(self, message, status_type="info"):
         """显示状态信息"""
-        if hasattr(self, 'content_manager') and hasattr(self.content_manager, 'current_content'):
-            self.content_manager.current_content.show_status(message, status_type)
+        if hasattr(self, 'content_manager') and self.content_manager.current_page:
+            current_page = self.content_manager.pages.get(self.content_manager.current_page)
+            if current_page and hasattr(current_page, 'show_status'):
+                current_page.show_status(message, status_type)
     
     def setup_window(self):
         """设置窗口属性 - 现代化设计"""

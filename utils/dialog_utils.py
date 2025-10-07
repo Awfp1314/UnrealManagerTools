@@ -60,6 +60,9 @@ class DialogUtils:
                             font=ctk.CTkFont(size=13, weight="bold"))
         label.pack(anchor="w", pady=(0, 5))
         
+        # 初始化widget变量
+        widget = None
+        
         # 输入框
         if entry_type == "entry":
             widget = ctk.CTkEntry(parent, textvariable=var, 
@@ -72,10 +75,12 @@ class DialogUtils:
                                    variable=var, font=ctk.CTkFont(size=13), **kwargs)
             label.destroy()  # 复选框不需要单独的标签
         
-        if entry_type != "checkbox":
-            widget.pack(fill="x", pady=(0, 15))
-        else:
-            widget.pack(anchor="w", pady=15)
+        # 确保widget存在再调用pack
+        if widget is not None:
+            if entry_type != "checkbox":
+                widget.pack(fill="x", pady=(0, 15))
+            else:
+                widget.pack(anchor="w", pady=15)
         
         return widget
     

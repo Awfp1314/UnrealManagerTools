@@ -98,47 +98,60 @@ def test_asset_manager_config():
     
     # 创建临时目录用于测试
     test_dir = tempfile.mkdtemp(prefix="asset_config_test_")
+    # 保存当前工作目录
+    original_cwd = os.getcwd()
     
     try:
-        # 保存当前工作目录并切换到测试目录
-        original_cwd = os.getcwd()
+        # 切换到测试目录
         os.chdir(test_dir)
         
         # 创建config目录
         config_dir = "config"
         os.makedirs(config_dir, exist_ok=True)
         
-        # 创建资产管理器
-        asset_manager = AssetManager()
+        # 模拟环境变量以使用测试目录
+        original_appdata = os.environ.get('APPDATA')
+        os.environ['APPDATA'] = test_dir
         
-        # 检查配置是否正确加载
-        assert "默认" in asset_manager.categories
-        assert "全部" in asset_manager.categories
-        print("✅ 资产管理器初始化测试通过")
-        
-        # 添加资源测试
-        test_resource = {
-            "name": "TestResource",
-            "path": "/test/path",
-            "category": "测试",
-            "cover": "",
-            "doc": "",
-            "date_added": "2023-01-01 12:00:00"
-        }
-        
-        asset_manager.resources.append(test_resource)
-        assert asset_manager.save_data()
-        
-        # 重新加载验证
-        asset_manager.load_data()
-        assert len(asset_manager.resources) == 1
-        assert asset_manager.resources[0]["name"] == "TestResource"
-        print("✅ 资源保存和加载测试通过")
-        
-        # 添加分类测试
-        assert asset_manager.add_category("新分类")
-        assert "新分类" in asset_manager.categories
-        print("✅ 分类管理测试通过")
+        try:
+            # 创建资产管理器
+            asset_manager = AssetManager()
+            
+            # 检查配置是否正确加载
+            assert "默认" in asset_manager.categories
+            assert "全部" in asset_manager.categories
+            print("✅ 资产管理器初始化测试通过")
+            
+            # 添加资源测试
+            test_resource = {
+                "name": "TestResource",
+                "path": "/test/path",
+                "category": "测试",
+                "cover": "",
+                "doc": "",
+                "date_added": "2023-01-01 12:00:00"
+            }
+            
+            asset_manager.resources.append(test_resource)
+            assert asset_manager.save_data()
+            
+            # 重新创建资产管理器实例来模拟重新加载
+            asset_manager2 = AssetManager()
+            assert len(asset_manager2.resources) == 1
+            assert asset_manager2.resources[0]["name"] == "TestResource"
+            print("✅ 资源保存和加载测试通过")
+            
+            # 添加分类测试
+            assert asset_manager2.add_category("新分类")
+            assert "新分类" in asset_manager2.categories
+            print("✅ 分类管理测试通过")
+            
+        finally:
+            # 恢复环境变量
+            if original_appdata:
+                os.environ['APPDATA'] = original_appdata
+            elif 'APPDATA' in os.environ:
+                del os.environ['APPDATA']
         
     finally:
         # 恢复工作目录并清理测试目录
@@ -154,41 +167,54 @@ def test_project_manager_config():
     
     # 创建临时目录用于测试
     test_dir = tempfile.mkdtemp(prefix="project_config_test_")
+    # 保存当前工作目录
+    original_cwd = os.getcwd()
     
     try:
-        # 保存当前工作目录并切换到测试目录
-        original_cwd = os.getcwd()
+        # 切换到测试目录
         os.chdir(test_dir)
         
         # 创建config目录
         config_dir = "config"
         os.makedirs(config_dir, exist_ok=True)
         
-        # 创建项目管理器
-        project_manager = ProjectManager()
+        # 模拟环境变量以使用测试目录
+        original_appdata = os.environ.get('APPDATA')
+        os.environ['APPDATA'] = test_dir
         
-        # 检查配置是否正确加载
-        assert isinstance(project_manager.recent_projects, list)
-        print("✅ 项目管理器初始化测试通过")
-        
-        # 添加项目测试
-        test_project = {
-            "name": "TestProject",
-            "path": "/test/project.uproject",
-            "dir": "/test",
-            "size": 1024,
-            "modified": "2023-01-01T12:00:00",
-            "created": "2023-01-01T12:00:00"
-        }
-        
-        project_manager.recent_projects.append(test_project)
-        assert project_manager.save_config()
-        
-        # 重新加载验证
-        project_manager.load_config()
-        assert len(project_manager.recent_projects) == 1
-        assert project_manager.recent_projects[0]["name"] == "TestProject"
-        print("✅ 项目保存和加载测试通过")
+        try:
+            # 创建项目管理器
+            project_manager = ProjectManager()
+            
+            # 检查配置是否正确加载
+            assert isinstance(project_manager.recent_projects, list)
+            print("✅ 项目管理器初始化测试通过")
+            
+            # 添加项目测试
+            test_project = {
+                "name": "TestProject",
+                "path": "/test/project.uproject",
+                "dir": "/test",
+                "size": 1024,
+                "modified": "2023-01-01T12:00:00",
+                "created": "2023-01-01T12:00:00"
+            }
+            
+            project_manager.recent_projects.append(test_project)
+            assert project_manager.save_config()
+            
+            # 重新创建项目管理器实例来模拟重新加载
+            project_manager2 = ProjectManager()
+            assert len(project_manager2.recent_projects) == 1
+            assert project_manager2.recent_projects[0]["name"] == "TestProject"
+            print("✅ 项目保存和加载测试通过")
+            
+        finally:
+            # 恢复环境变量
+            if original_appdata:
+                os.environ['APPDATA'] = original_appdata
+            elif 'APPDATA' in os.environ:
+                del os.environ['APPDATA']
         
     finally:
         # 恢复工作目录并清理测试目录
@@ -204,67 +230,80 @@ def test_version_migration():
     
     # 创建临时目录用于测试
     test_dir = tempfile.mkdtemp(prefix="migration_test_")
+    # 保存当前工作目录
+    original_cwd = os.getcwd()
     
     try:
-        # 保存当前工作目录并切换到测试目录
-        original_cwd = os.getcwd()
+        # 切换到测试目录
         os.chdir(test_dir)
         
-        # 创建config目录
-        config_dir = "config"
-        os.makedirs(config_dir, exist_ok=True)
+        # 模拟环境变量以使用测试目录
+        original_appdata = os.environ.get('APPDATA')
+        os.environ['APPDATA'] = test_dir
         
-        # 创建旧版本资产配置文件
-        old_assets_config = {
-            "resources": [
-                {
-                    "name": "OldResource",
-                    "path": "/old/path",
-                    "category": "旧分类"
-                }
-            ],
-            "categories": ["旧分类"],
-            "version": "0.5.0"
-        }
-        
-        with open(os.path.join(config_dir, "ue_assets.json"), 'w', encoding='utf-8') as f:
-            json.dump(old_assets_config, f, ensure_ascii=False, indent=2)
-        
-        # 创建资产管理器（应该触发迁移）
-        asset_manager = AssetManager()
-        
-        # 检查迁移结果
-        assert len(asset_manager.resources) == 1
-        assert asset_manager.resources[0]["name"] == "OldResource"
-        # 注意：迁移后categories会包含"全部"，所以需要检查"默认"是否在categories中
-        categories_without_all = [cat for cat in asset_manager.categories if cat != "全部"]
-        assert "默认" in categories_without_all or "旧分类" in asset_manager.categories
-        assert asset_manager.config["version"] == "1.0.0"  # 版本已更新
-        print("✅ 资产配置版本迁移测试通过")
-        
-        # 创建旧版本项目配置文件
-        old_projects_config = {
-            "recent_projects": [
-                {
-                    "name": "OldProject",
-                    "path": "/old/project.uproject"
-                }
-            ],
-            "version": "0.8.0"
-        }
-        
-        with open(os.path.join(config_dir, "ue_projects.json"), 'w', encoding='utf-8') as f:
-            json.dump(old_projects_config, f, ensure_ascii=False, indent=2)
-        
-        # 创建项目管理器（应该触发迁移）
-        project_manager = ProjectManager()
-        
-        # 检查迁移结果
-        assert len(project_manager.recent_projects) == 1
-        assert project_manager.recent_projects[0]["name"] == "OldProject"
-        assert project_manager.config["version"] == "1.0.0"  # 版本已更新
-        assert "settings" in project_manager.config  # 新增的设置字段
-        print("✅ 项目配置版本迁移测试通过")
+        try:
+            # 创建UnrealManagerTools目录结构
+            config_base_dir = os.path.join(test_dir, "UnrealManagerTools")
+            os.makedirs(config_base_dir, exist_ok=True)
+            
+            # 创建旧版本资产配置文件
+            old_assets_config = {
+                "resources": [
+                    {
+                        "name": "OldResource",
+                        "path": "/old/path",
+                        "category": "旧分类"
+                    }
+                ],
+                "categories": ["旧分类"],
+                "version": "0.5.0"
+            }
+            
+            with open(os.path.join(config_base_dir, "ue_assets.json"), 'w', encoding='utf-8') as f:
+                json.dump(old_assets_config, f, ensure_ascii=False, indent=2)
+            
+            # 创建资产管理器（应该触发迁移）
+            asset_manager = AssetManager()
+            
+            # 检查迁移结果
+            assert len(asset_manager.resources) == 1
+            assert asset_manager.resources[0]["name"] == "OldResource"
+            # 注意：迁移后categories会包含"全部"，所以需要检查"默认"是否在categories中
+            categories_without_all = [cat for cat in asset_manager.categories if cat != "全部"]
+            assert "默认" in categories_without_all or "旧分类" in asset_manager.categories
+            assert asset_manager.config["version"] == "1.0.0"  # 版本已更新
+            print("✅ 资产配置版本迁移测试通过")
+            
+            # 创建旧版本项目配置文件
+            old_projects_config = {
+                "recent_projects": [
+                    {
+                        "name": "OldProject",
+                        "path": "/old/project.uproject"
+                    }
+                ],
+                "version": "0.8.0"
+            }
+            
+            with open(os.path.join(config_base_dir, "ue_projects.json"), 'w', encoding='utf-8') as f:
+                json.dump(old_projects_config, f, ensure_ascii=False, indent=2)
+            
+            # 创建项目管理器（应该触发迁移）
+            project_manager = ProjectManager()
+            
+            # 检查迁移结果
+            assert len(project_manager.recent_projects) == 1
+            assert project_manager.recent_projects[0]["name"] == "OldProject"
+            assert project_manager.config["version"] == "1.0.0"  # 版本已更新
+            assert "settings" in project_manager.config  # 新增的设置字段
+            print("✅ 项目配置版本迁移测试通过")
+            
+        finally:
+            # 恢复环境变量
+            if original_appdata:
+                os.environ['APPDATA'] = original_appdata
+            elif 'APPDATA' in os.environ:
+                del os.environ['APPDATA']
         
     finally:
         # 恢复工作目录并清理测试目录

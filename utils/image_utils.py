@@ -34,7 +34,14 @@ class ImageUtils:
 
     def create_rounded_thumbnail(self, img, size):
         """创建圆角矩形缩略图"""
-        img = img.resize(size, Image.LANCZOS)
+        # 使用PIL的新名称，兼容不同版本
+        try:
+            # Pillow >= 10.0.0 使用 Resampling.LANCZOS
+            from PIL.Image import Resampling
+            img = img.resize(size, Resampling.LANCZOS)
+        except (AttributeError, ImportError):
+            # 较旧版本使用数字常量
+            img = img.resize(size, 1)  # 1 代表 LANCZOS
         
         # 创建圆角遮罩
         mask = Image.new('L', size, 0)

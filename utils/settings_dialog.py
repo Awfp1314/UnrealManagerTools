@@ -27,6 +27,9 @@ class SettingsDialog:
     
     def create_settings_ui(self):
         """创建设置界面"""
+        if not self.dialog:
+            return
+            
         # 设置标题
         title_label = ctk.CTkLabel(
             self.dialog,
@@ -53,13 +56,11 @@ class SettingsDialog:
         )
         theme_optionmenu.pack(side="left", fill="x", expand=True)
         
-
-        
         # 关闭按钮
         close_button = ctk.CTkButton(
             self.dialog,
             text="关闭",
-            command=self.dialog.destroy,
+            command=self.close_dialog,
             width=100
         )
         close_button.pack(pady=30)
@@ -73,7 +74,14 @@ class SettingsDialog:
     
 
             
+    def close_dialog(self):
+        """关闭对话框"""
+        if self.dialog:
+            self.dialog.destroy()
+            self.dialog = None
+    
     def destroy(self):
         """销毁对话框"""
         if self.dialog:
             self.dialog.destroy()
+            self.dialog = None
